@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Finance Tracking Tool</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <!-- Video Background -->
+    <div class="video-background">
+        <video autoplay muted loop playsinline id="bgVideo">
+            <source src="large-thumbnail20250225-196099-19xdc5z.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <svg class="logo-icon" width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Left circle - reflective orange filled -->
+                    <ellipse cx="30" cy="50" rx="25" ry="45" fill="url(#reflectiveOrange)"/>
+                    <ellipse cx="30" cy="50" rx="25" ry="45" fill="url(#reflectionGradient)" opacity="0.6"/>
+                    
+                    <!-- Right circle - white stroke only, fully transparent inside showing background -->
+                    <ellipse cx="70" cy="50" rx="25" ry="45" stroke="white" stroke-width="4" fill="none" fill-opacity="0"/>
+                    
+                    <!-- Flame -->
+                    <path d="M50 20 C50 20, 45 30, 45 40 C45 48, 48 52, 50 55 C52 52, 55 48, 55 40 C55 30, 50 20, 50 20 Z" 
+                          fill="url(#flameGradient)"/>
+                    
+                    <!-- Grill lines -->
+                    <line x1="60" y1="55" x2="70" y2="55" stroke="white" stroke-width="2"/>
+                    <line x1="60" y1="60" x2="75" y2="60" stroke="white" stroke-width="2"/>
+                    <line x1="60" y1="65" x2="70" y2="65" stroke="white" stroke-width="2"/>
+                    
+                    <defs>
+                        <!-- Base orange gradient for left circle -->
+                        <linearGradient id="reflectiveOrange" x1="30" y1="5" x2="30" y2="95" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#FF8A00"/>
+                            <stop offset="50%" stop-color="#FF6F00"/>
+                            <stop offset="100%" stop-color="#E65100"/>
+                        </linearGradient>
+                        
+                        <!-- Reflective highlight -->
+                        <radialGradient id="reflectionGradient" cx="30" cy="35">
+                            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+                            <stop offset="40%" stop-color="#FFE082" stop-opacity="0.3"/>
+                            <stop offset="100%" stop-color="#FF6F00" stop-opacity="0"/>
+                        </radialGradient>
+                        
+                        <!-- Flame gradient -->
+                        <linearGradient id="flameGradient" x1="50" y1="20" x2="50" y2="55" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#FFF59D"/>
+                            <stop offset="50%" stop-color="#FFB74D"/>
+                            <stop offset="100%" stop-color="#FF6F00"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="logo-text">
+                    <h1>BURN</h1>
+                    <span class="logo-subtitle">PRODUCTIONS</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="home">
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="quotes">
+                        <span>Quote Generator</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="invoices">
+                        <span>Invoice Generator</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="transactions">
+                        <span>Transactions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="documents">
+                        <span>Documents</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="main-content">
+        
+        <!-- Home Page -->
+        <section id="home-page" class="page active">
+            <div class="container">
+                <div class="hero">
+                    <h2>Welcome to Your Business Finance Hub</h2>
+                    <p>Manage quotes, invoices, and track all your business transactions in one place</p>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="navigateTo('quotes')">Create Quote</button>
+                        <button class="btn btn-primary" onclick="navigateTo('invoices')">Create Invoice</button>
+                        <button class="btn btn-secondary" onclick="navigateTo('transactions')">View Transactions</button>
+                    </div>
+                </div>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3>Total Quotes</h3>
+                        <p class="stat-value" id="totalQuotes">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Invoices</h3>
+                        <p class="stat-value" id="totalInvoices">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Revenue</h3>
+                        <p class="stat-value" id="totalRevenue">R 0.00</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pending Payments</h3>
+                        <p class="stat-value" id="pendingPayments">R 0.00</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quote Generator Page -->
+        <section id="quotes-page" class="page">
+            <div class="container">
+                <h2>Quote Generator</h2>
+                <form id="quoteForm" class="document-form">
+                    <div class="form-section">
+                        <h3>Business Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quoteBizName">Business Name</label>
+                                <input type="text" id="quoteBizName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteBizEmail">Email</label>
+                                <input type="email" id="quoteBizEmail" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quoteBizPhone">Phone</label>
+                                <input type="tel" id="quoteBizPhone">
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteBizAddress">Address</label>
+                                <input type="text" id="quoteBizAddress">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Client Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quoteClientName">Client Name</label>
+                                <input type="text" id="quoteClientName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteClientEmail">Client Email</label>
+                                <input type="email" id="quoteClientEmail">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quoteClientPhone">Client Phone</label>
+                                <input type="tel" id="quoteClientPhone">
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteClientAddress">Client Address</label>
+                                <input type="text" id="quoteClientAddress">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Quote Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quoteNumber">Quote Number</label>
+                                <input type="text" id="quoteNumber" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteDate">Quote Date</label>
+                                <input type="date" id="quoteDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="quoteValidUntil">Valid Until</label>
+                                <input type="date" id="quoteValidUntil">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Items/Services</h3>
+                        <div id="quoteItems">
+                            <div class="item-row">
+                                <input type="text" placeholder="Description" class="item-desc" required>
+                                <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+                                <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+                                <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addQuoteItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Calculations</h3>
+                        <div class="calculations">
+                            <div class="calc-row">
+                                <span>Subtotal:</span>
+                                <span id="quoteSubtotal">R 0.00</span>
+                            </div>
+                            <div class="calc-row">
+                                <label for="quoteDiscount">Discount (%):</label>
+                                <input type="number" id="quoteDiscount" step="0.01" min="0" max="100" value="0">
+                            </div>
+                            <div class="calc-row">
+                                <span>Discount Amount:</span>
+                                <span id="quoteDiscountAmount">R 0.00</span>
+                            </div>
+                            <div class="calc-row total">
+                                <span>Total:</span>
+                                <span id="quoteTotal">R 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label for="quoteNotes">Notes/Terms</label>
+                        <textarea id="quoteNotes" rows="4" placeholder="Additional notes or terms..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm('quoteForm')">Reset</button>
+                        <button type="button" class="btn btn-primary" onclick="saveQuote()">Save Quote</button>
+                        <button type="button" class="btn btn-primary" onclick="downloadQuotePDF()">Download PDF</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Invoice Generator Page -->
+        <section id="invoices-page" class="page">
+            <div class="container">
+                <h2>Invoice Generator</h2>
+                <form id="invoiceForm" class="document-form">
+                    <div class="form-section">
+                        <h3>Business Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invBizName">Business Name</label>
+                                <input type="text" id="invBizName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="invBizEmail">Email</label>
+                                <input type="email" id="invBizEmail" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invBizPhone">Phone</label>
+                                <input type="tel" id="invBizPhone">
+                            </div>
+                            <div class="form-group">
+                                <label for="invBizAddress">Address</label>
+                                <input type="text" id="invBizAddress">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Client Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invClientName">Client Name</label>
+                                <input type="text" id="invClientName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="invClientEmail">Client Email</label>
+                                <input type="email" id="invClientEmail">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invClientPhone">Client Phone</label>
+                                <input type="tel" id="invClientPhone">
+                            </div>
+                            <div class="form-group">
+                                <label for="invClientAddress">Client Address</label>
+                                <input type="text" id="invClientAddress">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Invoice Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invoiceNumber">Invoice Number</label>
+                                <input type="text" id="invoiceNumber" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="invoiceDate">Invoice Date</label>
+                                <input type="date" id="invoiceDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="invoiceDueDate">Due Date</label>
+                                <input type="date" id="invoiceDueDate" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="invoiceStatus">Payment Status</label>
+                                <select id="invoiceStatus">
+                                    <option value="pending">Pending</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="overdue">Overdue</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Items/Services</h3>
+                        <div id="invoiceItems">
+                            <div class="item-row">
+                                <input type="text" placeholder="Description" class="item-desc" required>
+                                <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+                                <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+                                <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addInvoiceItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Calculations</h3>
+                        <div class="calculations">
+                            <div class="calc-row">
+                                <span>Subtotal:</span>
+                                <span id="invSubtotal">R 0.00</span>
+                            </div>
+                            <div class="calc-row">
+                                <label for="invDiscount">Discount (%):</label>
+                                <input type="number" id="invDiscount" step="0.01" min="0" max="100" value="0">
+                            </div>
+                            <div class="calc-row">
+                                <span>Discount Amount:</span>
+                                <span id="invDiscountAmount">R 0.00</span>
+                            </div>
+                            <div class="calc-row total">
+                                <span>Total:</span>
+                                <span id="invTotal">R 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label for="invNotes">Notes/Payment Terms</label>
+                        <textarea id="invNotes" rows="4" placeholder="Payment instructions, terms, or additional notes..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm('invoiceForm')">Reset</button>
+                        <button type="button" class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
+                        <button type="button" class="btn btn-primary" onclick="downloadInvoicePDF()">Download PDF</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Transactions Page -->
+        <section id="transactions-page" class="page">
+            <div class="container">
+                <h2>Transactions Overview</h2>
+                
+                <div class="transaction-summary">
+                    <div class="summary-card">
+                        <h3>Total Income</h3>
+                        <p class="amount positive" id="totalIncome">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total Expenses</h3>
+                        <p class="amount negative" id="totalExpenses">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Net Profit</h3>
+                        <p class="amount" id="netProfit">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Outstanding</h3>
+                        <p class="amount warning" id="outstanding">R 0.00</p>
+                    </div>
+                </div>
+
+                <div class="transaction-controls">
+                    <div class="filters">
+                        <select id="filterType">
+                            <option value="all">All Transactions</option>
+                            <option value="quote">Quotes</option>
+                            <option value="invoice">Invoices</option>
+                        </select>
+                        <select id="filterStatus">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                        <input type="date" id="filterDateFrom" placeholder="From Date">
+                        <input type="date" id="filterDateTo" placeholder="To Date">
+                        <button class="btn btn-secondary" onclick="applyFilters()">Apply Filters</button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                    </div>
+                    <div class="export-controls">
+                        <button class="btn btn-primary" onclick="exportTransactionsCSV()">Export CSV</button>
+                        <button class="btn btn-primary" onclick="exportTransactionsPDF()">Export PDF</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="transactionsTable">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Number</th>
+                                <th>Client</th>
+                                <th>Date</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsBody">
+                            <!-- Transactions will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documents Page -->
+        <section id="documents-page" class="page">
+            <div class="container">
+                <h2>Saved Documents</h2>
+                <div class="documents-controls">
+                    <input type="text" id="searchDocuments" placeholder="Search documents...">
+                    <select id="documentTypeFilter">
+                        <option value="all">All Types</option>
+                        <option value="quote">Quotes</option>
+                        <option value="invoice">Invoices</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="filterDocuments()">Filter</button>
+                </div>
+                
+                <div class="documents-grid" id="documentsGrid">
+                    <!-- Documents will be populated here -->
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
