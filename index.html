@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Finance Tracking Tool</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=202602041307">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -83,6 +83,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="expenses">
+                        <span>Expenses</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#" class="nav-link" data-page="transactions">
                         <span>Transactions</span>
                     </a>
@@ -130,8 +135,8 @@
                         <p class="stat-value" id="totalRevenue">R 0.00</p>
                     </div>
                     <div class="stat-card">
-                        <h3>Pending Payments</h3>
-                        <p class="stat-value" id="pendingPayments">R 0.00</p>
+                        <h3>Outstanding (Pending)</h3>
+                        <p class="stat-value" id="totalOutstanding">R 0.00</p>
                     </div>
                 </div>
             </div>
@@ -263,6 +268,17 @@
                 <h2>Invoice Generator</h2>
                 <form id="invoiceForm" class="document-form">
                     <div class="form-section">
+                        <h3>Approved Quote</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="approvedQuoteSelect">Select Approved Quote</label>
+                                <select id="approvedQuoteSelect">
+                                    <option value="">Select an approved quote (optional)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-section">
                         <h3>Business Information</h3>
                         <div class="form-row">
                             <div class="form-group">
@@ -388,6 +404,140 @@
             </div>
         </section>
 
+        <!-- Expenses Page -->
+        <section id="expenses-page" class="page">
+            <div class="container">
+                <h2>Expenses</h2>
+                <form id="expenseForm" class="document-form">
+                    <div class="form-section">
+                        <h3>Vendor Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseVendorName">Vendor Name</label>
+                                <input type="text" id="expenseVendorName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseVendorEmail">Email</label>
+                                <input type="email" id="expenseVendorEmail">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseVendorPhone">Phone</label>
+                                <input type="tel" id="expenseVendorPhone">
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseVendorAddress">Address</label>
+                                <input type="text" id="expenseVendorAddress">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Bill Details</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseNumber">Bill Number</label>
+                                <input type="text" id="expenseNumber" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseDate">Bill Date</label>
+                                <input type="date" id="expenseDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseDueDate">Due Date</label>
+                                <input type="date" id="expenseDueDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseStatus">Bill Status</label>
+                                <select id="expenseStatus">
+                                    <option value="unpaid">Unpaid</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="overdue">Overdue</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Items/Services</h3>
+                        <div id="expenseItems">
+                            <div class="item-row">
+                                <input type="text" placeholder="Description" class="item-desc" required>
+                                <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+                                <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+                                <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addExpenseItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Calculations</h3>
+                        <div class="calculations">
+                            <div class="calc-row">
+                                <span>Subtotal:</span>
+                                <span id="expenseSubtotal">R 0.00</span>
+                            </div>
+                            <div class="calc-row total">
+                                <span>Total:</span>
+                                <span id="expenseTotal">R 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label for="expenseNotes">Notes</label>
+                        <textarea id="expenseNotes" rows="4" placeholder="Bill notes or additional details..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm('expenseForm')">Reset</button>
+                        <button type="button" class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+                    </div>
+                </form>
+
+                <div class="expense-summary">
+                    <div class="summary-card">
+                        <h3>Total Expenses</h3>
+                        <p class="amount negative" id="expenseTotalAmount">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Unpaid Bills</h3>
+                        <p class="amount warning" id="expenseUnpaidTotal">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Overdue Bills</h3>
+                        <p class="amount warning" id="expenseOverdueTotal">R 0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Paid Bills</h3>
+                        <p class="amount positive" id="expensePaidTotal">R 0.00</p>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="expensesTable">
+                        <thead>
+                            <tr>
+                                <th>Vendor</th>
+                                <th>Bill #</th>
+                                <th>Date</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesBody">
+                            <!-- Expenses will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- Transactions Page -->
         <section id="transactions-page" class="page">
             <div class="container">
@@ -418,12 +568,17 @@
                             <option value="all">All Transactions</option>
                             <option value="quote">Quotes</option>
                             <option value="invoice">Invoices</option>
+                            <option value="expense">Expenses</option>
                         </select>
                         <select id="filterStatus">
                             <option value="all">All Status</option>
                             <option value="pending">Pending</option>
                             <option value="paid">Paid</option>
                             <option value="overdue">Overdue</option>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Cancelled</option>
                         </select>
                         <input type="date" id="filterDateFrom" placeholder="From Date">
                         <input type="date" id="filterDateTo" placeholder="To Date">
@@ -442,7 +597,7 @@
                             <tr>
                                 <th>Type</th>
                                 <th>Number</th>
-                                <th>Client</th>
+                                <th>Party Name</th>
                                 <th>Date</th>
                                 <th>Due Date</th>
                                 <th>Amount</th>
@@ -480,6 +635,6 @@
 
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=202602041307"></script>
 </body>
 </html>
