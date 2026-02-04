@@ -68,40 +68,49 @@ function setupEventListeners() {
 
 // Navigation
 function navigateTo(page) {
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Show selected page
-    document.getElementById(page + '-page').classList.add('active');
-    
-    // Update active nav link
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-page') === page) {
-            link.classList.add('active');
+    try {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        
+        // Show selected page
+        const targetPage = document.getElementById(page + '-page');
+        if (!targetPage) {
+            console.error(`Page not found: ${page}-page`);
+            return;
         }
-    });
-    
-    // Close mobile menu if open
-    const hamburger = document.querySelector('.hamburger');
-    const navMenu = document.querySelector('.nav-menu');
-    if (hamburger && navMenu) {
-        hamburger.classList.remove('active');
-        navMenu.classList.remove('active');
-    }
-    
-    // Scroll to top of page
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Update page-specific content
-    if (page === 'transactions') {
-        loadTransactions();
-    } else if (page === 'documents') {
-        loadDocuments();
-    } else if (page === 'expenses') {
-        loadExpenses();
-    } else if (page === 'home') {
-        updateDashboard();
+        targetPage.classList.add('active');
+        
+        // Update active nav link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('data-page') === page) {
+                link.classList.add('active');
+            }
+        });
+        
+        // Close mobile menu if open
+        const hamburger = document.querySelector('.hamburger');
+        const navMenu = document.querySelector('.nav-menu');
+        if (hamburger && navMenu) {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+        }
+        
+        // Scroll to top of page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Update page-specific content
+        if (page === 'transactions') {
+            loadTransactions();
+        } else if (page === 'documents') {
+            loadDocuments();
+        } else if (page === 'expenses') {
+            loadExpenses();
+        } else if (page === 'home') {
+            updateDashboard();
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
     }
 }
 
