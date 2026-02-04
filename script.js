@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Approved quotes loaded');
         
         // Set default dates
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayString();
         document.getElementById('quoteDate').value = today;
         document.getElementById('invoiceDate').value = today;
         document.getElementById('expenseDate').value = today;
@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize App
 function initializeApp() {
+    const pageFromHash = getPageFromHash();
+    if (pageFromHash) {
+        navigateTo(pageFromHash, { updateHash: false });
+        return;
+    }
+
     // Show home page by default
     navigateTo('home');
 }
@@ -72,10 +78,12 @@ function setupEventListeners() {
         });
     }
 
-    // Navigation links - with defensive checks
-    document.querySelectorAll('.nav-link').forEach(link => {
+    // Navigation links + buttons - with defensive checks
+    document.querySelectorAll('[data-page]').forEach(link => {
         link.addEventListener('click', function(e) {
-            e.preventDefault();
+            if (this.tagName.toLowerCase() === 'a') {
+                e.preventDefault();
+            }
             const page = this.getAttribute('data-page');
             if (page) {
                 navigateTo(page);
@@ -87,6 +95,13 @@ function setupEventListeners() {
                 }
             }
         });
+    });
+
+    window.addEventListener('hashchange', () => {
+        const pageFromHash = getPageFromHash();
+        if (pageFromHash) {
+            navigateTo(pageFromHash, { updateHash: false });
+        }
     });
 
     // Real-time calculations for quotes
@@ -103,7 +118,7 @@ function setupEventListeners() {
 }
 
 // Navigation
-function navigateTo(page) {
+function navigateTo(page, options = {}) {
     console.log('=== NAVIGATION TRIGGERED ===');
     console.log('Page requested:', page);
     console.trace();
@@ -128,6 +143,11 @@ function navigateTo(page) {
         }
         
         console.log('Found target page:', pageId);
+
+        const targetHash = `#${page}-page`;
+        if (options.updateHash !== false && window.location.hash !== targetHash) {
+            window.location.hash = targetHash;
+        }
         
         // Hide all pages
         const allPages = document.querySelectorAll('.page');
@@ -191,6 +211,14 @@ function navigateTo(page) {
     }
 }
 
+function getPageFromHash() {
+    const hash = window.location.hash.replace('#', '').trim();
+    if (!hash) {
+        return null;
+    }
+    return hash.endsWith('-page') ? hash.replace(/-page$/, '') : hash;
+}
+
 // Quote Management
 function addQuoteItem() {
     const container = document.getElementById('quoteItems');
@@ -203,6 +231,11 @@ function addQuoteItem() {
         <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
     `;
     container.appendChild(newItem);
+    const descInput = newItem.querySelector('.item-desc');
+    if (descInput) {
+        descInput.focus();
+        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     calculateQuote();
 }
 
@@ -230,6 +263,9 @@ function calculateQuote() {
 function saveQuote() {
     console.log('=== SAVING QUOTE ===');
     try {
+        if (!validateForm('quoteForm')) {
+            return;
+        }
         const quote = {
             id: Date.now(),
             type: 'quote',
@@ -307,6 +343,11 @@ function addInvoiceItem() {
         <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
     `;
     container.appendChild(newItem);
+    const descInput = newItem.querySelector('.item-desc');
+    if (descInput) {
+        descInput.focus();
+        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     calculateInvoice();
 }
 
@@ -334,6 +375,9 @@ function calculateInvoice() {
 function saveInvoice() {
     console.log('=== SAVING INVOICE ===');
     try {
+        if (!validateForm('invoiceForm')) {
+            return;
+        }
         const invoice = {
             id: Date.now(),
             type: 'invoice',
@@ -419,6 +463,42 @@ function generateInvoiceNumber() {
 }
 
 // Common Functions
+function getTodayString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function focusFirstInvalid(form) {
+    const firstInvalid = form.querySelector(':invalid');
+    if (firstInvalid) {
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function validateForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return false;
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        focusFirstInvalid(form);
+        return false;
+    }
+    return true;
+}
+
+function resetItemRows(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = `
+        <div class="item-row">
+            <input type="text" placeholder="Description" class="item-desc" required>
+            <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+            <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+        </div>
+    `;
+}
+
 function removeItem(button) {
     const itemRow = button.parentElement;
     const container = itemRow.parentElement;
@@ -439,13 +519,29 @@ function removeItem(button) {
 }
 
 function resetForm(formId) {
-    document.getElementById(formId).reset();
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.reset();
+
     if (formId === 'quoteForm') {
+        resetItemRows('quoteItems');
+        const quoteDate = document.getElementById('quoteDate');
+        if (quoteDate) quoteDate.value = getTodayString();
         calculateQuote();
         generateQuoteNumber();
-    } else {
+    } else if (formId === 'invoiceForm') {
+        resetItemRows('invoiceItems');
+        const invoiceDate = document.getElementById('invoiceDate');
+        if (invoiceDate) invoiceDate.value = getTodayString();
+        const approvedSelect = document.getElementById('approvedQuoteSelect');
+        if (approvedSelect) approvedSelect.value = '';
+        delete form.dataset.quoteId;
+        delete form.dataset.generatedFromQuote;
         calculateInvoice();
         generateInvoiceNumber();
+    } else if (formId === 'expenseForm') {
+        const expenseDate = document.getElementById('expenseDate');
+        if (expenseDate) expenseDate.value = getTodayString();
     }
 }
 
@@ -453,6 +549,9 @@ function resetForm(formId) {
 function downloadQuotePDF() {
     console.log('=== DOWNLOADING QUOTE PDF ===');
     try {
+        if (!validateForm('quoteForm')) {
+            return;
+        }
         if (!window.jspdf) {
             console.error('jsPDF library not loaded!');
             alert('PDF library is not loaded. Please refresh the page.');
@@ -557,6 +656,9 @@ function downloadQuotePDF() {
 function downloadInvoicePDF() {
     console.log('=== DOWNLOADING INVOICE PDF ===');
     try {
+        if (!validateForm('invoiceForm')) {
+            return;
+        }
         if (!window.jspdf) {
             console.error('jsPDF library not loaded!');
             alert('PDF library is not loaded. Please refresh the page.');
@@ -1221,6 +1323,9 @@ function updateInvoiceStatus(invoiceId, newStatus) {
 
 // Expense Functions
 function saveExpense() {
+    if (!validateForm('expenseForm')) {
+        return;
+    }
     const expense = {
         id: Date.now(),
         type: 'expense',
@@ -1243,7 +1348,7 @@ function saveExpense() {
     updateDashboard();
     loadTransactions();
     document.getElementById('expenseForm').reset();
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayString();
     document.getElementById('expenseDate').value = today;
 }
 

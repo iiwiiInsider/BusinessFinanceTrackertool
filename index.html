@@ -21,46 +21,6 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo">
-                <svg class="logo-icon" width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-                    <defs>
-                        <!-- Base orange gradient for left circle -->
-                        <linearGradient id="logo-reflective-orange" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:rgb(255,138,0);stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:rgb(255,111,0);stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:rgb(230,81,0);stop-opacity:1" />
-                        </linearGradient>
-                        
-                        <!-- Reflective highlight -->
-                        <radialGradient id="logo-reflection-gradient" cx="50%" cy="30%">
-                            <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:0.8" />
-                            <stop offset="40%" style="stop-color:rgb(255,224,130);stop-opacity:0.3" />
-                            <stop offset="100%" style="stop-color:rgb(255,111,0);stop-opacity:0" />
-                        </radialGradient>
-                        
-                        <!-- Flame gradient -->
-                        <linearGradient id="logo-flame-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
-                            <stop offset="0%" style="stop-color:rgb(255,245,157);stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:rgb(255,183,77);stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:rgb(255,111,0);stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    
-                    <!-- Left circle - reflective orange filled -->
-                    <ellipse cx="30" cy="50" rx="25" ry="45" fill="url(#logo-reflective-orange)"/>
-                    <ellipse cx="30" cy="50" rx="25" ry="45" fill="url(#logo-reflection-gradient)" opacity="0.6"/>
-                    
-                    <!-- Right circle - white stroke only, fully transparent inside -->
-                    <ellipse cx="70" cy="50" rx="25" ry="45" stroke="#FFFFFF" stroke-width="4" fill="none"/>
-                    
-                    <!-- Flame -->
-                    <path d="M50 20 C50 20, 45 30, 45 40 C45 48, 48 52, 50 55 C52 52, 55 48, 55 40 C55 30, 50 20, 50 20 Z" 
-                          fill="url(#logo-flame-gradient)"/>
-                    
-                    <!-- Grill lines -->
-                    <line x1="60" y1="55" x2="70" y2="55" stroke="#FFFFFF" stroke-width="2"/>
-                    <line x1="60" y1="60" x2="75" y2="60" stroke="#FFFFFF" stroke-width="2"/>
-                    <line x1="60" y1="65" x2="70" y2="65" stroke="#FFFFFF" stroke-width="2"/>
-                </svg>
                 <div class="logo-text">
                     <h1>BURN</h1>
                     <span class="logo-subtitle">PRODUCTIONS</span>
@@ -68,32 +28,35 @@
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="home">
-                        <span>Home</span>
+                    <a href="#home-page" class="nav-link" data-page="home" aria-label="Home">
+                        <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="quotes">
+                    <a href="#quotes-page" class="nav-link" data-page="quotes">
                         <span>Quote Generator</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="invoices">
+                    <a href="#invoices-page" class="nav-link" data-page="invoices">
                         <span>Invoice Generator</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="expenses">
+                    <a href="#expenses-page" class="nav-link" data-page="expenses">
                         <span>Expenses</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="transactions">
+                    <a href="#transactions-page" class="nav-link" data-page="transactions">
                         <span>Transactions</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="documents">
+                    <a href="#documents-page" class="nav-link" data-page="documents">
                         <span>Documents</span>
                     </a>
                 </li>
@@ -116,9 +79,9 @@
                     <h2>Welcome to Your Business Finance Hub</h2>
                     <p>Manage quotes, invoices, and track all your business transactions in one place</p>
                     <div class="quick-actions">
-                        <button class="btn btn-primary" onclick="navigateTo('quotes')">Create Quote</button>
-                        <button class="btn btn-primary" onclick="navigateTo('invoices')">Create Invoice</button>
-                        <button class="btn btn-secondary" onclick="navigateTo('transactions')">View Transactions</button>
+                        <a class="btn btn-primary js-nav" href="#quotes-page" data-page="quotes">Create Quote</a>
+                        <a class="btn btn-primary js-nav" href="#invoices-page" data-page="invoices">Create Invoice</a>
+                        <a class="btn btn-secondary js-nav" href="#transactions-page" data-page="transactions">View Transactions</a>
                     </div>
                 </div>
                 <div class="dashboard-stats">
