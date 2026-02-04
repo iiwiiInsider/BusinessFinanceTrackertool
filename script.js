@@ -249,11 +249,11 @@ function saveInvoice() {
     if (form.dataset.quoteId) {
         invoice.quoteId = parseInt(form.dataset.quoteId);
         
-        // Update the associated quote status to "accepted"
+        // Update the associated quote status to "invoiced"
         const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
         const quoteIndex = quotes.findIndex(q => q.id === invoice.quoteId);
         if (quoteIndex !== -1) {
-            quotes[quoteIndex].status = 'accepted';
+            quotes[quoteIndex].status = 'invoiced';
             saveToStorage(STORAGE_KEYS.QUOTES, quotes);
         }
         
@@ -524,8 +524,8 @@ function displayTransactions(transactions) {
             <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
         `;
         
-        // Add Generate Invoice button for pending/unapproved quotes
-        if (trans.type === 'quote' && trans.status === 'pending') {
+        // Add Generate Invoice button for approved quotes
+        if (trans.type === 'quote' && trans.status === 'approved') {
             actionButtons = `
                 <button class="action-btn" onclick="generateInvoiceFromQuote(${trans.id})">Generate Invoice</button>
                 <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
@@ -542,8 +542,8 @@ function displayTransactions(transactions) {
             `;
         }
         
-        // Add View button for accepted quotes and paid invoices
-        if ((trans.type === 'quote' && trans.status === 'accepted') || (trans.type === 'invoice' && trans.status === 'paid')) {
+        // Add View button for invoiced quotes and paid invoices
+        if ((trans.type === 'quote' && trans.status === 'invoiced') || (trans.type === 'invoice' && trans.status === 'paid')) {
             actionButtons = `
                 <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
                 <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
@@ -590,7 +590,7 @@ function displayTransactions(transactions) {
 
 function updateTransactionSummary(transactions) {
     const invoices = transactions.filter(t => t.type === 'invoice');
-    const quotes = transactions.filter(t => t.type === 'quote' && t.status !== 'accepted'); // Exclude accepted quotes
+    const quotes = transactions.filter(t => t.type === 'quote' && t.status !== 'invoiced' && t.status !== 'rejected'); // Exclude invoiced and rejected quotes
     const expenses = transactions.filter(t => t.type === 'expense');
     const allDocuments = [...invoices, ...quotes];
     
@@ -598,13 +598,13 @@ function updateTransactionSummary(transactions) {
     const totalIncome = invoices.reduce((sum, inv) => 
         inv.status === 'paid' ? sum + inv.total : sum, 0);
     
-    // Outstanding = pending invoices + pending quotes (not accepted ones)
+    // Outstanding = pending invoices + pending quotes (not invoiced or rejected ones)
     const pendingInvoices = invoices.reduce((sum, inv) => 
         inv.status === 'pending' ? sum + inv.total : sum, 0);
     const totalQuotes = quotes.reduce((sum, q) => sum + q.total, 0);
     const outstanding = pendingInvoices + totalQuotes;
     
-    // Total potential revenue (all non-deleted, non-accepted transactions)
+    // Total potential revenue (all non-deleted, non-invoiced transactions)
     const totalPotentialRevenue = allDocuments.reduce((sum, doc) => sum + doc.total, 0);
     
     // Total Expenses - sum of all expenses
@@ -956,13 +956,19 @@ function downloadFile(content, filename, type) {
 // Generate Invoice from Quote
 function generateInvoiceFromQuote(quoteId) {
     // Get all quotes from storage
-    const quotes = getFromStorage('business_quotes') || [];
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const quote = quotes.find(q => q.id === quoteId);
     
     if (!quote) {
         alert('Quote not found');
         return;
     }
+    
+    // Populate business info from quote
+    document.getElementById('invBizName').value = quote.businessInfo.name;
+    document.getElementById('invBizEmail').value = quote.businessInfo.email;
+    document.getElementById('invBizPhone').value = quote.businessInfo.phone;
+    document.getElementById('invBizAddress').value = quote.businessInfo.address;
     
     // Populate invoice form with quote data
     document.getElementById('invClientName').value = quote.clientInfo.name;
@@ -979,10 +985,10 @@ function generateInvoiceFromQuote(quoteId) {
         const itemRow = document.createElement('div');
         itemRow.className = 'item-row';
         itemRow.innerHTML = `
-            <input type="text" placeholder="Item/Service Description" value="${item.description}" class="item-description">
-            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-quantity">
-            <input type="number" placeholder="Unit Price" value="${item.price}" class="item-price">
-            <button type="button" onclick="this.parentElement.remove(); calculateInvoice();">Remove</button>
+            <input type="text" placeholder="Description" value="${item.description}" class="item-desc" required>
+            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-qty" min="1" required>
+            <input type="number" placeholder="Price" value="${item.price}" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
         `;
         invoiceItemsContainer.appendChild(itemRow);
     });
@@ -1093,7 +1099,7 @@ function displayExpenses(expenses) {
     
     expenses.forEach(expense => {
         const row = document.createElement('tr');
-        let statusColor = 'status-pending';
+        let statusColor = 'status-unpaid';
         if (expense.status === 'paid') statusColor = 'status-paid';
         if (expense.status === 'overdue') statusColor = 'status-overdue';
         if (expense.status === 'cancelled') statusColor = 'status-cancelled';
@@ -1165,7 +1171,8 @@ function deleteExpense(expenseId) {
 // Load Approved Quotes for Invoice Dropdown
 function loadApprovedQuotes() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
-    const approvedQuotes = quotes.filter(q => q.status === 'approved' || q.status === 'accepted');
+    // Only show approved quotes that haven't been invoiced yet
+    const approvedQuotes = quotes.filter(q => q.status === 'approved');
     
     const selectElement = document.getElementById('approvedQuoteSelect');
     if (!selectElement) return;
@@ -1199,6 +1206,12 @@ function populateFromApprovedQuote() {
         return;
     }
     
+    // Populate business info from quote
+    document.getElementById('invBizName').value = quote.businessInfo.name;
+    document.getElementById('invBizEmail').value = quote.businessInfo.email;
+    document.getElementById('invBizPhone').value = quote.businessInfo.phone;
+    document.getElementById('invBizAddress').value = quote.businessInfo.address;
+    
     // Populate invoice form with quote data
     document.getElementById('invClientName').value = quote.clientInfo.name;
     document.getElementById('invClientEmail').value = quote.clientInfo.email;
@@ -1208,10 +1221,10 @@ function populateFromApprovedQuote() {
     // Clear existing items and add quote items
     const invoiceItemsContainer = document.getElementById('invoiceItems');
     invoiceItemsContainer.innerHTML = '';
-    
-    // Add each quote item to invoice
-    quote.items.forEach(item => {
-        const itemRow = document.createElement('div');
+    Description" value="${item.description}" class="item-desc" required>
+            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-qty" min="1" required>
+            <input type="number" placeholder="Price" value="${item.price}" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×
         itemRow.className = 'item-row';
         itemRow.innerHTML = `
             <input type="text" placeholder="Item/Service Description" value="${item.description}" class="item-description">
