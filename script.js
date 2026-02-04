@@ -82,11 +82,26 @@ function navigateTo(page) {
         }
     });
     
+    // Close mobile menu if open
+    const hamburger = document.querySelector('.hamburger');
+    const navMenu = document.querySelector('.nav-menu');
+    if (hamburger && navMenu) {
+        hamburger.classList.remove('active');
+        navMenu.classList.remove('active');
+    }
+    
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     // Update page-specific content
     if (page === 'transactions') {
         loadTransactions();
     } else if (page === 'documents') {
         loadDocuments();
+    } else if (page === 'expenses') {
+        loadExpenses();
+    } else if (page === 'home') {
+        updateDashboard();
     }
 }
 
