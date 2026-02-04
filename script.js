@@ -228,40 +228,53 @@ function calculateQuote() {
 }
 
 function saveQuote() {
-    const quote = {
-        id: Date.now(),
-        type: 'quote',
-        number: document.getElementById('quoteNumber').value,
-        date: document.getElementById('quoteDate').value,
-        validUntil: document.getElementById('quoteValidUntil').value,
-        businessInfo: {
-            name: document.getElementById('quoteBizName').value,
-            email: document.getElementById('quoteBizEmail').value,
-            phone: document.getElementById('quoteBizPhone').value,
-            address: document.getElementById('quoteBizAddress').value
-        },
-        clientInfo: {
-            name: document.getElementById('quoteClientName').value,
-            email: document.getElementById('quoteClientEmail').value,
-            phone: document.getElementById('quoteClientPhone').value,
-            address: document.getElementById('quoteClientAddress').value
-        },
-        items: getQuoteItems(),
-        discount: parseFloat(document.getElementById('quoteDiscount').value) || 0,
-        notes: document.getElementById('quoteNotes').value,
-        subtotal: parseFloat(document.getElementById('quoteSubtotal').textContent.replace(/[R $,]/g, '')),
-        total: parseFloat(document.getElementById('quoteTotal').textContent.replace(/[R $,]/g, '')),
-        status: 'pending'
-    };
-    
-    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
-    quotes.push(quote);
-    saveToStorage(STORAGE_KEYS.QUOTES, quotes);
-    
-    alert('Quote saved successfully!');
-    updateDashboard();
-    loadTransactions(); // Refresh transaction summary
-    generateQuoteNumber();
+    console.log('=== SAVING QUOTE ===');
+    try {
+        const quote = {
+            id: Date.now(),
+            type: 'quote',
+            number: document.getElementById('quoteNumber').value,
+            date: document.getElementById('quoteDate').value,
+            validUntil: document.getElementById('quoteValidUntil').value,
+            businessInfo: {
+                name: document.getElementById('quoteBizName').value,
+                email: document.getElementById('quoteBizEmail').value,
+                phone: document.getElementById('quoteBizPhone').value,
+                address: document.getElementById('quoteBizAddress').value
+            },
+            clientInfo: {
+                name: document.getElementById('quoteClientName').value,
+                email: document.getElementById('quoteClientEmail').value,
+                phone: document.getElementById('quoteClientPhone').value,
+                address: document.getElementById('quoteClientAddress').value
+            },
+            items: getQuoteItems(),
+            discount: parseFloat(document.getElementById('quoteDiscount').value) || 0,
+            notes: document.getElementById('quoteNotes').value,
+            subtotal: parseFloat(document.getElementById('quoteSubtotal').textContent.replace(/[R $,]/g, '')),
+            total: parseFloat(document.getElementById('quoteTotal').textContent.replace(/[R $,]/g, '')),
+            status: 'pending'
+        };
+        
+        console.log('Quote object created:', quote);
+        
+        const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+        quotes.push(quote);
+        saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+        
+        console.log('Quote saved to storage');
+        
+        alert('Quote saved successfully! Click "Download Quote PDF" to generate the PDF.');
+        updateDashboard();
+        loadTransactions();
+        generateQuoteNumber();
+        
+        console.log('=== QUOTE SAVE COMPLETE ===');
+    } catch (error) {
+        console.error('=== QUOTE SAVE ERROR ===');
+        console.error('Error:', error);
+        alert('Error saving quote: ' + error.message);
+    }
 }
 
 function getQuoteItems() {
@@ -319,58 +332,72 @@ function calculateInvoice() {
 }
 
 function saveInvoice() {
-    const invoice = {
-        id: Date.now(),
-        type: 'invoice',
-        number: document.getElementById('invoiceNumber').value,
-        date: document.getElementById('invoiceDate').value,
-        dueDate: document.getElementById('invoiceDueDate').value,
-        status: document.getElementById('invoiceStatus').value,
-        businessInfo: {
-            name: document.getElementById('invBizName').value,
-            email: document.getElementById('invBizEmail').value,
-            phone: document.getElementById('invBizPhone').value,
-            address: document.getElementById('invBizAddress').value
-        },
-        clientInfo: {
-            name: document.getElementById('invClientName').value,
-            email: document.getElementById('invClientEmail').value,
-            phone: document.getElementById('invClientPhone').value,
-            address: document.getElementById('invClientAddress').value
-        },
-        items: getInvoiceItems(),
-        discount: parseFloat(document.getElementById('invDiscount').value) || 0,
-        notes: document.getElementById('invNotes').value,
-        subtotal: parseFloat(document.getElementById('invSubtotal').textContent.replace(/[R $,]/g, '')),
-        total: parseFloat(document.getElementById('invTotal').textContent.replace(/[R $,]/g, ''))
-    };
-    
-    // Check if this invoice was generated from a quote
-    const form = document.getElementById('invoiceForm');
-    if (form.dataset.quoteId) {
-        invoice.quoteId = parseInt(form.dataset.quoteId);
+    console.log('=== SAVING INVOICE ===');
+    try {
+        const invoice = {
+            id: Date.now(),
+            type: 'invoice',
+            number: document.getElementById('invoiceNumber').value,
+            date: document.getElementById('invoiceDate').value,
+            dueDate: document.getElementById('invoiceDueDate').value,
+            status: document.getElementById('invoiceStatus').value,
+            businessInfo: {
+                name: document.getElementById('invBizName').value,
+                email: document.getElementById('invBizEmail').value,
+                phone: document.getElementById('invBizPhone').value,
+                address: document.getElementById('invBizAddress').value
+            },
+            clientInfo: {
+                name: document.getElementById('invClientName').value,
+                email: document.getElementById('invClientEmail').value,
+                phone: document.getElementById('invClientPhone').value,
+                address: document.getElementById('invClientAddress').value
+            },
+            items: getInvoiceItems(),
+            discount: parseFloat(document.getElementById('invDiscount').value) || 0,
+            notes: document.getElementById('invNotes').value,
+            subtotal: parseFloat(document.getElementById('invSubtotal').textContent.replace(/[R $,]/g, '')),
+            total: parseFloat(document.getElementById('invTotal').textContent.replace(/[R $,]/g, ''))
+        };
         
-        // Update the associated quote status to "invoiced"
-        const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
-        const quoteIndex = quotes.findIndex(q => q.id === invoice.quoteId);
-        if (quoteIndex !== -1) {
-            quotes[quoteIndex].status = 'invoiced';
-            saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+        console.log('Invoice object created:', invoice);
+        
+        // Check if this invoice was generated from a quote
+        const form = document.getElementById('invoiceForm');
+        if (form.dataset.quoteId) {
+            invoice.quoteId = parseInt(form.dataset.quoteId);
+            
+            // Update the associated quote status to "invoiced"
+            const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+            const quoteIndex = quotes.findIndex(q => q.id === invoice.quoteId);
+            if (quoteIndex !== -1) {
+                quotes[quoteIndex].status = 'invoiced';
+                saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+                console.log('Quote status updated to invoiced');
+            }
+            
+            // Clear the quote ID from the form
+            delete form.dataset.quoteId;
+            delete form.dataset.generatedFromQuote;
         }
         
-        // Clear the quote ID from the form
-        delete form.dataset.quoteId;
-        delete form.dataset.generatedFromQuote;
+        const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
+        invoices.push(invoice);
+        saveToStorage(STORAGE_KEYS.INVOICES, invoices);
+        
+        console.log('Invoice saved to storage');
+        
+        alert('Invoice saved successfully! Click "Download Invoice PDF" to generate the PDF.');
+        updateDashboard();
+        loadTransactions();
+        generateInvoiceNumber();
+        
+        console.log('=== INVOICE SAVE COMPLETE ===');
+    } catch (error) {
+        console.error('=== INVOICE SAVE ERROR ===');
+        console.error('Error:', error);
+        alert('Error saving invoice: ' + error.message);
     }
-    
-    const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    invoices.push(invoice);
-    saveToStorage(STORAGE_KEYS.INVOICES, invoices);
-    
-    alert('Invoice saved successfully!');
-    updateDashboard();
-    loadTransactions(); // Refresh transaction summary
-    generateInvoiceNumber();
 }
 
 function getInvoiceItems() {
@@ -424,8 +451,17 @@ function resetForm(formId) {
 
 // PDF Generation
 function downloadQuotePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    console.log('=== DOWNLOADING QUOTE PDF ===');
+    try {
+        if (!window.jspdf) {
+            console.error('jsPDF library not loaded!');
+            alert('PDF library is not loaded. Please refresh the page.');
+            return;
+        }
+        
+        console.log('jsPDF available:', typeof window.jspdf);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
     
     // Add logo
     doc.setFillColor(255, 138, 0);
@@ -507,12 +543,29 @@ function downloadQuotePDF() {
         doc.text(notes, 20, finalY + 35);
     }
     
-    doc.save(`Quote_${document.getElementById('quoteNumber').value}.pdf`);
+    const quoteNumber = document.getElementById('quoteNumber').value;
+    console.log('Saving PDF with quote number:', quoteNumber);
+    doc.save(`Quote_${quoteNumber}.pdf`);
+    console.log('=== QUOTE PDF DOWNLOAD COMPLETE ===');
+    } catch (error) {
+        console.error('=== QUOTE PDF ERROR ===');
+        console.error('Error:', error);
+        alert('Error generating PDF: ' + error.message);
+    }
 }
 
 function downloadInvoicePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    console.log('=== DOWNLOADING INVOICE PDF ===');
+    try {
+        if (!window.jspdf) {
+            console.error('jsPDF library not loaded!');
+            alert('PDF library is not loaded. Please refresh the page.');
+            return;
+        }
+        
+        console.log('jsPDF available:', typeof window.jspdf);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
     
     // Add logo
     doc.setFillColor(255, 138, 0);
@@ -595,7 +648,15 @@ function downloadInvoicePDF() {
         doc.text(notes, 20, finalY + 35);
     }
     
-    doc.save(`Invoice_${document.getElementById('invoiceNumber').value}.pdf`);
+    const invoiceNumber = document.getElementById('invoiceNumber').value;
+    console.log('Saving PDF with invoice number:', invoiceNumber);
+    doc.save(`Invoice_${invoiceNumber}.pdf`);
+    console.log('=== INVOICE PDF DOWNLOAD COMPLETE ===');
+    } catch (error) {
+        console.error('=== INVOICE PDF ERROR ===');
+        console.error('Error:', error);
+        alert('Error generating PDF: ' + error.message);
+    }
 }
 
 // Transactions
@@ -1363,8 +1424,15 @@ window.addInvoiceItem = addInvoiceItem;
 window.addExpense = addExpense;
 window.calculateQuote = calculateQuote;
 window.calculateInvoice = calculateInvoice;
+window.downloadQuotePDF = downloadQuotePDF;
+window.downloadInvoicePDF = downloadInvoicePDF;
+window.resetForm = resetForm;
+window.generateInvoiceFromQuote = generateInvoiceFromQuote;
+window.saveExpense = saveExpense;
 
 console.log('=== GLOBAL FUNCTIONS EXPORTED ===');
 console.log('navigateTo:', typeof window.navigateTo);
 console.log('saveQuote:', typeof window.saveQuote);
 console.log('saveInvoice:', typeof window.saveInvoice);
+console.log('downloadQuotePDF:', typeof window.downloadQuotePDF);
+console.log('downloadInvoicePDF:', typeof window.downloadInvoicePDF);
