@@ -198,7 +198,7 @@
                             </div>
                             <div class="calc-row">
                                 <label for="quoteDiscount">Discount (%):</label>
-                                <input type="number" id="quoteDiscount" step="0.01" min="0" max="100" value="0">
+                                <input type="number" id="quoteDiscount" step="0.01" min="0" max="100" value="0" oninput="calculateQuote()">
                             </div>
                             <div class="calc-row">
                                 <span>Discount Amount:</span>
@@ -341,7 +341,7 @@
                             </div>
                             <div class="calc-row">
                                 <label for="invDiscount">Discount (%):</label>
-                                <input type="number" id="invDiscount" step="0.01" min="0" max="100" value="0">
+                                <input type="number" id="invDiscount" step="0.01" min="0" max="100" value="0" oninput="calculateInvoice()">
                             </div>
                             <div class="calc-row">
                                 <span>Discount Amount:</span>

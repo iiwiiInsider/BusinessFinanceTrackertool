@@ -1,5 +1,71 @@
 # Business Finance Tracking Tool - Latest Updates (Feb 4, 2026)
 
+## Recent Improvements (Latest)
+
+### Generator & Calculation Enhancements ✓
+**Fixed in Quote & Invoice Generators**:
+
+1. **Improved Add Items Functionality**
+   - Quote items: Now properly attach event listeners when added dynamically
+   - Invoice items: Now properly attach event listeners when added dynamically
+   - Event listeners trigger `calculateQuote()` or `calculateInvoice()` on input/change
+   - Ensures calculations update instantly as you modify quantities and prices
+
+2. **Discount Input Auto-Calculation**
+   - Updated HTML: Added `oninput="calculateQuote()"` to discount input
+   - Updated HTML: Added `oninput="calculateInvoice()"` to discount input
+   - Discount changes now immediately reflect in total calculations
+
+3. **Form Reset After Save**
+   - `saveQuote()`: Now resets the form, item rows, discount, and recalculates after successful save
+   - `saveInvoice()`: Now resets the form, item rows, discount, and recalculates after successful save
+   - This prevents stale data and ensures a clean form for the next quote/invoice
+
+4. **Initial Item Listener Setup**
+   - New function `setupInitialItemListeners()` adds event listeners to initial item rows
+   - Called during `setupEventListeners()` on page load
+   - Prevents duplicate listener attachment with `dataset.listenerAdded` flag
+
+5. **Fixed Populate Quote Function**
+   - Fixed corrupted `populateFromApprovedQuote()` function
+   - Now properly clears and rebuilds invoice items from selected quote
+   - Automatically attaches event listeners to populated items
+   - Sets discount from source quote
+   - Calculates totals immediately upon population
+
+6. **Download PDF Functions**
+   - Both `downloadQuotePDF()` and `downloadInvoicePDF()` remain fully functional
+   - Validates form before generating PDF
+   - Checks for required jsPDF library
+   - Generates proper PDF with all quote/invoice data
+
+### Technical Changes
+
+**script.js Modifications**:
+- Enhanced `addQuoteItem()` with event listener attachment
+- Enhanced `addInvoiceItem()` with event listener attachment
+- Updated `saveQuote()` with form reset logic
+- Updated `saveInvoice()` with form reset logic
+- Added `setupInitialItemListeners()` function
+- Fixed `populateFromApprovedQuote()` function (was corrupted)
+- Added `populateFromApprovedQuote` to window exports
+
+**index.html Modifications**:
+- Added `oninput="calculateQuote()"` to quote discount input
+- Added `oninput="calculateInvoice()"` to invoice discount input
+
+### Testing Checklist
+- [ ] Add new quote items - calculations should update in real-time
+- [ ] Modify quantities and prices - totals should recalculate
+- [ ] Change discount percentage - total should reflect immediately
+- [ ] Save a quote - form should reset, ready for new quote
+- [ ] Select approved quote - invoice items should populate with listeners
+- [ ] Download quote PDF - should generate without errors
+- [ ] Download invoice PDF - should generate without errors
+- [ ] Add invoice items - calculations should update in real-time
+
+---
+
 ## Overview
 Major UI and feature enhancements to improve user experience, add expense tracking, and enhance workflow management.
 

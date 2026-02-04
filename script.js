@@ -104,17 +104,57 @@ function setupEventListeners() {
         }
     });
 
-    // Real-time calculations for quotes
-    const quoteForm = document.getElementById('quoteForm');
-    if (quoteForm) {
-        quoteForm.addEventListener('input', () => calculateQuote());
+    // Setup discount inputs with direct calculation
+    const quoteDiscount = document.getElementById('quoteDiscount');
+    if (quoteDiscount) {
+        quoteDiscount.addEventListener('input', calculateQuote);
+        quoteDiscount.addEventListener('change', calculateQuote);
     }
     
-    // Real-time calculations for invoices
-    const invoiceForm = document.getElementById('invoiceForm');
-    if (invoiceForm) {
-        invoiceForm.addEventListener('input', () => calculateInvoice());
+    const invDiscount = document.getElementById('invDiscount');
+    if (invDiscount) {
+        invDiscount.addEventListener('input', calculateInvoice);
+        invDiscount.addEventListener('change', calculateInvoice);
     }
+    
+    // Initialize item row event listeners
+    setupInitialItemListeners();
+}
+
+function setupInitialItemListeners() {
+    // Setup quote item listeners
+    const quoteItems = document.querySelectorAll('#quoteItems .item-row');
+    quoteItems.forEach(row => {
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        if (qtyInput && !qtyInput.dataset.listenerAdded) {
+            qtyInput.addEventListener('input', calculateQuote);
+            qtyInput.addEventListener('change', calculateQuote);
+            qtyInput.dataset.listenerAdded = 'true';
+        }
+        if (priceInput && !priceInput.dataset.listenerAdded) {
+            priceInput.addEventListener('input', calculateQuote);
+            priceInput.addEventListener('change', calculateQuote);
+            priceInput.dataset.listenerAdded = 'true';
+        }
+    });
+    
+    // Setup invoice item listeners
+    const invoiceItems = document.querySelectorAll('#invoiceItems .item-row');
+    invoiceItems.forEach(row => {
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        if (qtyInput && !qtyInput.dataset.listenerAdded) {
+            qtyInput.addEventListener('input', calculateInvoice);
+            qtyInput.addEventListener('change', calculateInvoice);
+            qtyInput.dataset.listenerAdded = 'true';
+        }
+        if (priceInput && !priceInput.dataset.listenerAdded) {
+            priceInput.addEventListener('input', calculateInvoice);
+            priceInput.addEventListener('change', calculateInvoice);
+            priceInput.dataset.listenerAdded = 'true';
+        }
+    });
 }
 
 // Navigation
@@ -221,43 +261,120 @@ function getPageFromHash() {
 
 // Quote Management
 function addQuoteItem() {
-    const container = document.getElementById('quoteItems');
-    const newItem = document.createElement('div');
-    newItem.className = 'item-row';
-    newItem.innerHTML = `
-        <input type="text" placeholder="Description" class="item-desc" required>
-        <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
-        <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
-        <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
-    `;
-    container.appendChild(newItem);
-    const descInput = newItem.querySelector('.item-desc');
-    if (descInput) {
-        descInput.focus();
-        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try {
+        console.log('=== ADD QUOTE ITEM CALLED ===');
+        const container = document.getElementById('quoteItems');
+        if (!container) {
+            console.error('Quote items container not found');
+            return;
+        }
+        
+        console.log('Container found, creating new item');
+        const newItem = document.createElement('div');
+        newItem.className = 'item-row';
+        newItem.innerHTML = `
+            <input type="text" placeholder="Description" class="item-desc" required>
+            <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+            <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+        `;
+        container.appendChild(newItem);
+        console.log('New item added to DOM');
+        
+        // Add event listeners for calculations
+        const qtyInput = newItem.querySelector('.item-qty');
+        const priceInput = newItem.querySelector('.item-price');
+        
+        if (qtyInput) {
+            qtyInput.addEventListener('input', function() {
+                console.log('Qty input changed:', this.value);
+                calculateQuote();
+            });
+            qtyInput.addEventListener('change', function() {
+                console.log('Qty changed (final):', this.value);
+                calculateQuote();
+            });
+            console.log('Qty input listeners added');
+        }
+        
+        if (priceInput) {
+            priceInput.addEventListener('input', function() {
+                console.log('Price input changed:', this.value);
+                calculateQuote();
+            });
+            priceInput.addEventListener('change', function() {
+                console.log('Price changed (final):', this.value);
+                calculateQuote();
+            });
+            console.log('Price input listeners added');
+        }
+        
+        const descInput = newItem.querySelector('.item-desc');
+        if (descInput) {
+            descInput.focus();
+            descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        console.log('Calculating quote...');
+        calculateQuote();
+        console.log('=== ADD QUOTE ITEM COMPLETE ===');
+    } catch (error) {
+        console.error('Error adding quote item:', error);
+        console.error('Stack:', error.stack);
+        alert('Error adding item. Please check browser console.');
     }
-    calculateQuote();
 }
 
 function calculateQuote() {
-    const items = document.querySelectorAll('#quoteItems .item-row');
-    let subtotal = 0;
-    
-    items.forEach(item => {
-        const qty = parseFloat(item.querySelector('.item-qty').value) || 0;
-        const price = parseFloat(item.querySelector('.item-price').value) || 0;
+    try {
+        console.log('=== CALCULATE QUOTE CALLED ===');
+        const items = document.querySelectorAll('#quoteItems .item-row');
+        console.log('Found items:', items.length);
+        let subtotal = 0;
         
-        const itemTotal = qty * price;
-        subtotal += itemTotal;
-    });
-    
-    const discount = parseFloat(document.getElementById('quoteDiscount').value) || 0;
-    const discountAmount = subtotal * (discount / 100);
-    const total = subtotal - discountAmount;
-    
-    document.getElementById('quoteSubtotal').textContent = formatCurrency(subtotal);
-    document.getElementById('quoteDiscountAmount').textContent = formatCurrency(discountAmount);
-    document.getElementById('quoteTotal').textContent = formatCurrency(total);
+        items.forEach((item, index) => {
+            const qtyInput = item.querySelector('.item-qty');
+            const priceInput = item.querySelector('.item-price');
+            
+            if (qtyInput && priceInput) {
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const itemTotal = qty * price;
+                console.log(`Item ${index}: qty=${qty}, price=${price}, total=${itemTotal}`);
+                subtotal += itemTotal;
+            }
+        });
+        
+        console.log('Subtotal before discount:', subtotal);
+        
+        const discountInput = document.getElementById('quoteDiscount');
+        const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+        const discountAmount = subtotal * (discount / 100);
+        const total = subtotal - discountAmount;
+        
+        console.log('Discount:', discount, '%, Amount:', discountAmount, 'Total:', total);
+        
+        const subtotalEl = document.getElementById('quoteSubtotal');
+        const discountAmountEl = document.getElementById('quoteDiscountAmount');
+        const totalEl = document.getElementById('quoteTotal');
+        
+        if (subtotalEl) {
+            subtotalEl.textContent = formatCurrency(subtotal);
+            console.log('Updated quoteSubtotal');
+        }
+        if (discountAmountEl) {
+            discountAmountEl.textContent = formatCurrency(discountAmount);
+            console.log('Updated quoteDiscountAmount');
+        }
+        if (totalEl) {
+            totalEl.textContent = formatCurrency(total);
+            console.log('Updated quoteTotal');
+        }
+        console.log('=== CALCULATE QUOTE COMPLETE ===');
+    } catch (error) {
+        console.error('Error calculating quote:', error);
+        console.error('Stack:', error.stack);
+    }
 }
 
 function saveQuote() {
@@ -301,6 +418,13 @@ function saveQuote() {
         console.log('Quote saved to storage');
         
         alert('Quote saved successfully! Click "Download Quote PDF" to generate the PDF.');
+        
+        // Reset form and calculations
+        resetForm('quoteForm');
+        resetItemRows('quoteItems');
+        document.getElementById('quoteDiscount').value = 0;
+        calculateQuote();
+        
         updateDashboard();
         loadTransactions();
         generateQuoteNumber();
@@ -333,43 +457,124 @@ function generateQuoteNumber() {
 
 // Invoice Management
 function addInvoiceItem() {
-    const container = document.getElementById('invoiceItems');
-    const newItem = document.createElement('div');
-    newItem.className = 'item-row';
-    newItem.innerHTML = `
-        <input type="text" placeholder="Description" class="item-desc" required>
-        <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
-        <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
-        <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
-    `;
-    container.appendChild(newItem);
-    const descInput = newItem.querySelector('.item-desc');
-    if (descInput) {
-        descInput.focus();
-        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try {
+        console.log('=== ADD INVOICE ITEM CALLED ===');
+        const container = document.getElementById('invoiceItems');
+        if (!container) {
+            console.error('Invoice items container not found');
+            return;
+        }
+        
+        console.log('Container found, creating new item');
+        const newItem = document.createElement('div');
+        newItem.className = 'item-row';
+        newItem.innerHTML = `
+            <input type="text" placeholder="Description" class="item-desc" required>
+            <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+            <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+        `;
+        container.appendChild(newItem);
+        console.log('New item added to DOM');
+        
+        // Add event listeners for calculations
+        const qtyInput = newItem.querySelector('.item-qty');
+        const priceInput = newItem.querySelector('.item-price');
+        
+        if (qtyInput) {
+            qtyInput.addEventListener('input', function() {
+                console.log('Invoice Qty input changed:', this.value);
+                calculateInvoice();
+            });
+            qtyInput.addEventListener('change', function() {
+                console.log('Invoice Qty changed (final):', this.value);
+                calculateInvoice();
+            });
+            console.log('Qty input listeners added');
+        }
+        
+        if (priceInput) {
+            priceInput.addEventListener('input', function() {
+                console.log('Invoice Price input changed:', this.value);
+                calculateInvoice();
+            });
+            priceInput.addEventListener('change', function() {
+                console.log('Invoice Price changed (final):', this.value);
+                calculateInvoice();
+            });
+            console.log('Price input listeners added');
+        }
+        
+        const descInput = newItem.querySelector('.item-desc');
+        if (descInput) {
+            descInput.focus();
+            descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        console.log('Calculating invoice...');
+        calculateInvoice();
+        console.log('=== ADD INVOICE ITEM COMPLETE ===');
+    } catch (error) {
+        console.error('Error adding invoice item:', error);
+        console.error('Stack:', error.stack);
+        alert('Error adding item. Please check browser console.');
     }
+}
+    calculateInvoice();
+}
     calculateInvoice();
 }
 
 function calculateInvoice() {
-    const items = document.querySelectorAll('#invoiceItems .item-row');
-    let subtotal = 0;
-    
-    items.forEach(item => {
-        const qty = parseFloat(item.querySelector('.item-qty').value) || 0;
-        const price = parseFloat(item.querySelector('.item-price').value) || 0;
+    try {
+        console.log('=== CALCULATE INVOICE CALLED ===');
+        const items = document.querySelectorAll('#invoiceItems .item-row');
+        console.log('Found items:', items.length);
+        let subtotal = 0;
         
-        const itemTotal = qty * price;
-        subtotal += itemTotal;
-    });
-    
-    const discount = parseFloat(document.getElementById('invDiscount').value) || 0;
-    const discountAmount = subtotal * (discount / 100);
-    const total = subtotal - discountAmount;
-    
-    document.getElementById('invSubtotal').textContent = formatCurrency(subtotal);
-    document.getElementById('invDiscountAmount').textContent = formatCurrency(discountAmount);
-    document.getElementById('invTotal').textContent = formatCurrency(total);
+        items.forEach((item, index) => {
+            const qtyInput = item.querySelector('.item-qty');
+            const priceInput = item.querySelector('.item-price');
+            
+            if (qtyInput && priceInput) {
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const itemTotal = qty * price;
+                console.log(`Item ${index}: qty=${qty}, price=${price}, total=${itemTotal}`);
+                subtotal += itemTotal;
+            }
+        });
+        
+        console.log('Subtotal before discount:', subtotal);
+        
+        const discountInput = document.getElementById('invDiscount');
+        const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+        const discountAmount = subtotal * (discount / 100);
+        const total = subtotal - discountAmount;
+        
+        console.log('Discount:', discount, '%, Amount:', discountAmount, 'Total:', total);
+        
+        const subtotalEl = document.getElementById('invSubtotal');
+        const discountAmountEl = document.getElementById('invDiscountAmount');
+        const totalEl = document.getElementById('invTotal');
+        
+        if (subtotalEl) {
+            subtotalEl.textContent = formatCurrency(subtotal);
+            console.log('Updated invSubtotal');
+        }
+        if (discountAmountEl) {
+            discountAmountEl.textContent = formatCurrency(discountAmount);
+            console.log('Updated invDiscountAmount');
+        }
+        if (totalEl) {
+            totalEl.textContent = formatCurrency(total);
+            console.log('Updated invTotal');
+        }
+        console.log('=== CALCULATE INVOICE COMPLETE ===');
+    } catch (error) {
+        console.error('Error calculating invoice:', error);
+        console.error('Stack:', error.stack);
+    }
 }
 
 function saveInvoice() {
@@ -432,6 +637,13 @@ function saveInvoice() {
         console.log('Invoice saved to storage');
         
         alert('Invoice saved successfully! Click "Download Invoice PDF" to generate the PDF.');
+        
+        // Reset form and calculations
+        resetForm('invoiceForm');
+        resetItemRows('invoiceItems');
+        document.getElementById('invDiscount').value = 0;
+        calculateInvoice();
+        
         updateDashboard();
         loadTransactions();
         generateInvoiceNumber();
@@ -1485,37 +1697,44 @@ function populateFromApprovedQuote() {
     document.getElementById('invClientPhone').value = quote.clientInfo.phone;
     document.getElementById('invClientAddress').value = quote.clientInfo.address;
     
+    // Set discount from quote
+    document.getElementById('invDiscount').value = quote.discount || 0;
+    
     // Clear existing items and add quote items
     const invoiceItemsContainer = document.getElementById('invoiceItems');
     invoiceItemsContainer.innerHTML = '';
-    Description" value="${item.description}" class="item-desc" required>
-            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-qty" min="1" required>
-            <input type="number" placeholder="Price" value="${item.price}" class="item-price" step="0.01" min="0" required>
-            <button type="button" class="btn-remove" onclick="removeItem(this)">×
+    
+    quote.items.forEach(item => {
+        const itemRow = document.createElement('div');
         itemRow.className = 'item-row';
         itemRow.innerHTML = `
-            <input type="text" placeholder="Item/Service Description" value="${item.description}" class="item-description">
-            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-quantity">
-            <input type="number" placeholder="Unit Price" value="${item.price}" class="item-price">
-            <button type="button" onclick="this.parentElement.remove(); calculateInvoice();">Remove</button>
+            <input type="text" placeholder="Description" value="${item.description}" class="item-desc" required>
+            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-qty" min="1" required>
+            <input type="number" placeholder="Price" value="${item.price}" class="item-price" step="0.01" min="0" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
         `;
         invoiceItemsContainer.appendChild(itemRow);
+        
+        // Add event listeners for calculations
+        const qtyInput = itemRow.querySelector('.item-qty');
+        const priceInput = itemRow.querySelector('.item-price');
+        if (qtyInput) {
+            qtyInput.addEventListener('input', calculateInvoice);
+            qtyInput.addEventListener('change', calculateInvoice);
+        }
+        if (priceInput) {
+            priceInput.addEventListener('input', calculateInvoice);
+            priceInput.addEventListener('change', calculateInvoice);
+        }
     });
     
-    // Copy discount and calculate
-    document.getElementById('invDiscount').value = quote.discount || 0;
+    // Store the quote ID for later reference
+    const form = document.getElementById('invoiceForm');
+    form.dataset.quoteId = quote.id;
+    form.dataset.generatedFromQuote = 'true';
     
-    // Set invoice date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('invoiceDate').value = today;
-    
-    // Store quote ID for reference when saving
-    document.getElementById('invoiceForm').dataset.quoteId = quoteId;
-    
-    // Calculate and display
+    // Calculate totals
     calculateInvoice();
-    
-    alert('Invoice populated from approved quote. Please review and save.');
 }
 
 // ====== GLOBAL FUNCTION EXPORTS ======
@@ -1534,6 +1753,7 @@ window.downloadInvoicePDF = downloadInvoicePDF;
 window.resetForm = resetForm;
 window.generateInvoiceFromQuote = generateInvoiceFromQuote;
 window.saveExpense = saveExpense;
+window.populateFromApprovedQuote = populateFromApprovedQuote;
 
 console.log('=== GLOBAL FUNCTIONS EXPORTED ===');
 console.log('navigateTo:', typeof window.navigateTo);
