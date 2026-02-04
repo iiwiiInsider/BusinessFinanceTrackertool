@@ -2,6 +2,7 @@
 const STORAGE_KEYS = {
     QUOTES: 'business_quotes',
     INVOICES: 'business_invoices',
+    EXPENSES: 'business_expenses',
     BUSINESS_INFO: 'business_info'
 };
 
@@ -17,10 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('quoteDate').value = today;
     document.getElementById('invoiceDate').value = today;
+    setExpenseDefaultDates();
     
     // Generate initial document numbers
     generateQuoteNumber();
     generateInvoiceNumber();
+    generateExpenseNumber();
+    updateApprovedQuoteSelect();
 });
 
 // Initialize App
@@ -60,6 +64,17 @@ function setupEventListeners() {
     // Real-time calculations for invoices
     const invoiceForm = document.getElementById('invoiceForm');
     invoiceForm.addEventListener('input', () => calculateInvoice());
+
+    // Real-time calculations for expenses
+    const expenseForm = document.getElementById('expenseForm');
+    if (expenseForm) {
+        expenseForm.addEventListener('input', () => calculateExpense());
+    }
+
+    const approvedQuoteSelect = document.getElementById('approvedQuoteSelect');
+    if (approvedQuoteSelect) {
+        approvedQuoteSelect.addEventListener('change', handleApprovedQuoteSelect);
+    }
 }
 
 // Navigation
@@ -81,6 +96,8 @@ function navigateTo(page) {
     // Update page-specific content
     if (page === 'transactions') {
         loadTransactions();
+    } else if (page === 'expenses') {
+        loadExpenses();
     } else if (page === 'documents') {
         loadDocuments();
     }
@@ -156,6 +173,7 @@ function saveQuote() {
     alert('Quote saved successfully!');
     updateDashboard();
     generateQuoteNumber();
+    updateApprovedQuoteSelect();
 }
 
 function getQuoteItems() {
@@ -246,6 +264,10 @@ function saveInvoice() {
     alert('Invoice saved successfully!');
     updateDashboard();
     generateInvoiceNumber();
+    const approvedQuoteSelect = document.getElementById('approvedQuoteSelect');
+    if (approvedQuoteSelect) {
+        approvedQuoteSelect.value = '';
+    }
 }
 
 function getInvoiceItems() {
@@ -266,6 +288,241 @@ function generateInvoiceNumber() {
     document.getElementById('invoiceNumber').value = number;
 }
 
+// Expense Management
+function setExpenseDefaultDates() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('expenseDate').value = today;
+    document.getElementById('expenseDueDate').value = today;
+}
+
+function createExpenseItemRow() {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.innerHTML = `
+        <input type="text" placeholder="Description" class="item-desc" required>
+        <input type="number" placeholder="Quantity" class="item-qty" min="1" value="1" required>
+        <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" required>
+        <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+    `;
+    return row;
+}
+
+function addExpenseItem() {
+    const container = document.getElementById('expenseItems');
+    const newItem = createExpenseItemRow();
+    container.appendChild(newItem);
+    calculateExpense();
+}
+
+function calculateExpense() {
+    const items = document.querySelectorAll('#expenseItems .item-row');
+    let subtotal = 0;
+    
+    items.forEach(item => {
+        const qty = parseFloat(item.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(item.querySelector('.item-price').value) || 0;
+        subtotal += qty * price;
+    });
+    
+    document.getElementById('expenseSubtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('expenseTotal').textContent = formatCurrency(subtotal);
+}
+
+function saveExpense() {
+    const expense = {
+        id: Date.now(),
+        type: 'expense',
+        number: document.getElementById('expenseNumber').value,
+        date: document.getElementById('expenseDate').value,
+        dueDate: document.getElementById('expenseDueDate').value,
+        status: document.getElementById('expenseStatus').value,
+        vendorInfo: {
+            name: document.getElementById('expenseVendorName').value,
+            email: document.getElementById('expenseVendorEmail').value,
+            phone: document.getElementById('expenseVendorPhone').value,
+            address: document.getElementById('expenseVendorAddress').value
+        },
+        items: getExpenseItems(),
+        notes: document.getElementById('expenseNotes').value,
+        subtotal: parseFloat(document.getElementById('expenseSubtotal').textContent.replace(/[R $,]/g, '')),
+        total: parseFloat(document.getElementById('expenseTotal').textContent.replace(/[R $,]/g, ''))
+    };
+    
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    expenses.push(expense);
+    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+    
+    alert('Expense saved successfully!');
+    updateDashboard();
+    generateExpenseNumber();
+    resetExpenseForm();
+    loadExpenses();
+}
+
+function resetExpenseForm() {
+    document.getElementById('expenseVendorName').value = '';
+    document.getElementById('expenseVendorEmail').value = '';
+    document.getElementById('expenseVendorPhone').value = '';
+    document.getElementById('expenseVendorAddress').value = '';
+    setExpenseDefaultDates();
+    document.getElementById('expenseStatus').value = 'unpaid';
+    document.getElementById('expenseNotes').value = '';
+
+    const container = document.getElementById('expenseItems');
+    container.innerHTML = '';
+    container.appendChild(createExpenseItemRow());
+    calculateExpense();
+}
+
+function getExpenseItems() {
+    const items = [];
+    document.querySelectorAll('#expenseItems .item-row').forEach(row => {
+        items.push({
+            description: row.querySelector('.item-desc').value,
+            quantity: parseFloat(row.querySelector('.item-qty').value),
+            price: parseFloat(row.querySelector('.item-price').value)
+        });
+    });
+    return items;
+}
+
+function generateExpenseNumber() {
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const number = 'EXP' + String(expenses.length + 1).padStart(4, '0');
+    document.getElementById('expenseNumber').value = number;
+}
+
+function loadExpenses() {
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    displayExpenses(expenses);
+    updateExpenseSummary(expenses);
+}
+
+function displayExpenses(expenses) {
+    const tbody = document.getElementById('expensesBody');
+    tbody.innerHTML = '';
+    
+    if (expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No expenses found</td></tr>';
+        return;
+    }
+    
+    expenses.forEach(expense => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${expense.vendorInfo.name}</td>
+            <td>${expense.number}</td>
+            <td>${formatDate(expense.date)}</td>
+            <td>${formatDate(expense.dueDate)}</td>
+            <td>${formatCurrency(expense.total)}</td>
+            <td><span class="status-badge status-${expense.status}">${expense.status.toUpperCase()}</span></td>
+            <td>
+                <button class="action-btn danger" onclick="deleteExpense(${expense.id})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateExpenseSummary(expenses) {
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.total, 0);
+    const unpaid = expenses.reduce((sum, expense) => 
+        expense.status === 'unpaid' ? sum + expense.total : sum, 0);
+    const overdue = expenses.reduce((sum, expense) => 
+        expense.status === 'overdue' ? sum + expense.total : sum, 0);
+    const paid = expenses.reduce((sum, expense) => 
+        expense.status === 'paid' ? sum + expense.total : sum, 0);
+    
+    const totalElement = document.getElementById('expenseTotalAmount');
+    const unpaidElement = document.getElementById('expenseUnpaidTotal');
+    const overdueElement = document.getElementById('expenseOverdueTotal');
+    const paidElement = document.getElementById('expensePaidTotal');
+
+    if (totalElement) {
+        totalElement.textContent = formatCurrency(totalExpenses);
+    }
+    if (unpaidElement) {
+        unpaidElement.textContent = formatCurrency(unpaid);
+    }
+    if (overdueElement) {
+        overdueElement.textContent = formatCurrency(overdue);
+    }
+    if (paidElement) {
+        paidElement.textContent = formatCurrency(paid);
+    }
+}
+
+function deleteExpense(id) {
+    if (!confirm('Are you sure you want to delete this expense?')) return;
+    
+    let expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    expenses = expenses.filter(expense => expense.id !== id);
+    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+    
+    loadExpenses();
+    loadTransactions();
+    updateDashboard();
+    alert('Expense deleted successfully!');
+}
+
+// Approved quotes
+function updateApprovedQuoteSelect() {
+    const select = document.getElementById('approvedQuoteSelect');
+    if (!select) {
+        return;
+    }
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const approvedQuotes = quotes.filter(quote => quote.status === 'approved');
+    
+    select.innerHTML = '<option value="">Select an approved quote (optional)</option>';
+    approvedQuotes.forEach(quote => {
+        const option = document.createElement('option');
+        option.value = quote.id;
+        option.textContent = `${quote.number} - ${quote.clientInfo.name}`;
+        select.appendChild(option);
+    });
+}
+
+function handleApprovedQuoteSelect(event) {
+    const quoteId = parseInt(event.target.value, 10);
+    if (!quoteId) {
+        return;
+    }
+    
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const selectedQuote = quotes.find(quote => quote.id === quoteId);
+    if (!selectedQuote) {
+        return;
+    }
+    
+    document.getElementById('invBizName').value = selectedQuote.businessInfo.name;
+    document.getElementById('invBizEmail').value = selectedQuote.businessInfo.email;
+    document.getElementById('invBizPhone').value = selectedQuote.businessInfo.phone;
+    document.getElementById('invBizAddress').value = selectedQuote.businessInfo.address;
+    document.getElementById('invClientName').value = selectedQuote.clientInfo.name;
+    document.getElementById('invClientEmail').value = selectedQuote.clientInfo.email;
+    document.getElementById('invClientPhone').value = selectedQuote.clientInfo.phone;
+    document.getElementById('invClientAddress').value = selectedQuote.clientInfo.address;
+    document.getElementById('invDiscount').value = selectedQuote.discount || 0;
+    document.getElementById('invNotes').value = selectedQuote.notes || '';
+    
+    const container = document.getElementById('invoiceItems');
+    container.innerHTML = '';
+    selectedQuote.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+            <input type="text" placeholder="Description" class="item-desc" value="${item.description}" required>
+            <input type="number" placeholder="Quantity" class="item-qty" min="1" value="${item.quantity}" required>
+            <input type="number" placeholder="Price" class="item-price" step="0.01" min="0" value="${item.price}" required>
+            <button type="button" class="btn-remove" onclick="removeItem(this)">×</button>
+        `;
+        container.appendChild(row);
+    });
+    
+    calculateInvoice();
+}
+
 // Common Functions
 function removeItem(button) {
     const itemRow = button.parentElement;
@@ -278,6 +535,8 @@ function removeItem(button) {
         // Recalculate based on which form
         if (container.id === 'quoteItems') {
             calculateQuote();
+        } else if (container.id === 'expenseItems') {
+            calculateExpense();
         } else {
             calculateInvoice();
         }
@@ -291,6 +550,10 @@ function resetForm(formId) {
     if (formId === 'quoteForm') {
         calculateQuote();
         generateQuoteNumber();
+        updateApprovedQuoteSelect();
+    } else if (formId === 'expenseForm') {
+        resetExpenseForm();
+        generateExpenseNumber();
     } else {
         calculateInvoice();
         generateInvoiceNumber();
@@ -477,7 +740,8 @@ function downloadInvoicePDF() {
 function loadTransactions() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    const allTransactions = [...quotes, ...invoices].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const allTransactions = [...quotes, ...invoices, ...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     displayTransactions(allTransactions);
     updateTransactionSummary(allTransactions);
@@ -493,17 +757,18 @@ function displayTransactions(transactions) {
     }
     
     transactions.forEach(trans => {
+        const isExpense = trans.type === 'expense';
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><span class="status-badge">${trans.type.toUpperCase()}</span></td>
             <td>${trans.number}</td>
-            <td>${trans.clientInfo.name}</td>
+            <td>${isExpense ? trans.vendorInfo.name : trans.clientInfo.name}</td>
             <td>${formatDate(trans.date)}</td>
             <td>${trans.dueDate ? formatDate(trans.dueDate) : trans.validUntil ? formatDate(trans.validUntil) : '-'}</td>
             <td>${formatCurrency(trans.total)}</td>
             <td><span class="status-badge status-${trans.status}">${trans.status.toUpperCase()}</span></td>
             <td>
-                <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
+                ${isExpense ? '' : `<button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>`}
                 <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
             </td>
         `;
@@ -513,14 +778,15 @@ function displayTransactions(transactions) {
 
 function updateTransactionSummary(transactions) {
     const invoices = transactions.filter(t => t.type === 'invoice');
+    const quotes = transactions.filter(t => t.type === 'quote');
+    const expenses = transactions.filter(t => t.type === 'expense');
     
     const totalIncome = invoices.reduce((sum, inv) => 
         inv.status === 'paid' ? sum + inv.total : sum, 0);
     
-    const outstanding = invoices.reduce((sum, inv) => 
-        inv.status === 'pending' ? sum + inv.total : sum, 0);
+    const outstanding = calculateTotalOutstandingAmount(invoices, quotes);
     
-    const totalExpenses = 0; // Could be extended with expense tracking
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.total, 0);
     const netProfit = totalIncome - totalExpenses;
     
     document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
@@ -532,7 +798,8 @@ function updateTransactionSummary(transactions) {
 function applyFilters() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    let allTransactions = [...quotes, ...invoices];
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    let allTransactions = [...quotes, ...invoices, ...expenses];
     
     const typeFilter = document.getElementById('filterType').value;
     const statusFilter = document.getElementById('filterStatus').value;
@@ -570,14 +837,24 @@ function clearFilters() {
 function viewTransaction(id) {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    const transaction = [...quotes, ...invoices].find(t => t.id === id);
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const transaction = [...quotes, ...invoices, ...expenses].find(t => t.id === id);
     
     if (!transaction) return;
+    
+    if (transaction.type === 'expense') {
+        return;
+    }
     
     downloadDocumentPDF(id, transaction.type);
 }
 
 function deleteTransaction(id, type) {
+    if (type === 'expense') {
+        deleteExpense(id);
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete this transaction?')) return;
     
     const key = type === 'quote' ? STORAGE_KEYS.QUOTES : STORAGE_KEYS.INVOICES;
@@ -587,18 +864,21 @@ function deleteTransaction(id, type) {
     
     loadTransactions();
     updateDashboard();
+    updateApprovedQuoteSelect();
     alert('Transaction deleted successfully!');
 }
 
 function exportTransactionsCSV() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    const allTransactions = [...quotes, ...invoices];
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const allTransactions = [...quotes, ...invoices, ...expenses];
     
     let csv = 'Type,Number,Client,Date,Due Date,Amount,Status\n';
     
     allTransactions.forEach(trans => {
-        csv += `${trans.type},${trans.number},${trans.clientInfo.name},${trans.date},${trans.dueDate || trans.validUntil || '-'},${trans.total},${trans.status}\n`;
+        const partyName = trans.type === 'expense' ? trans.vendorInfo.name : trans.clientInfo.name;
+        csv += `${trans.type},${trans.number},${partyName},${trans.date},${trans.dueDate || trans.validUntil || '-'},${trans.total},${trans.status}\n`;
     });
     
     downloadFile(csv, 'transactions.csv', 'text/csv');
@@ -610,7 +890,8 @@ function exportTransactionsPDF() {
     
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    const allTransactions = [...quotes, ...invoices];
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const allTransactions = [...quotes, ...invoices, ...expenses];
     
     doc.setFontSize(18);
     doc.text('Transactions Report', 105, 15, { align: 'center' });
@@ -618,7 +899,7 @@ function exportTransactionsPDF() {
     const tableData = allTransactions.map(trans => [
         trans.type.toUpperCase(),
         trans.number,
-        trans.clientInfo.name,
+        trans.type === 'expense' ? trans.vendorInfo.name : trans.clientInfo.name,
         formatDate(trans.date),
         formatCurrency(trans.total),
         trans.status.toUpperCase()
@@ -653,6 +934,7 @@ function loadDocuments() {
         card.className = 'document-card';
         card.innerHTML = `
             <h3>${doc.number}</h3>
+            ${renderQuoteStatusActions(doc)}
             <div class="document-meta">
                 <p><strong>Type:</strong> ${doc.type.toUpperCase()}</p>
                 <p><strong>Client:</strong> ${doc.clientInfo.name}</p>
@@ -667,6 +949,35 @@ function loadDocuments() {
         `;
         grid.appendChild(card);
     });
+}
+
+function updateQuoteStatus(id, status) {
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const quoteIndex = quotes.findIndex(quote => quote.id === id);
+    if (quoteIndex === -1) {
+        return;
+    }
+    
+    quotes[quoteIndex].status = status;
+    saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+    loadDocuments();
+    loadTransactions();
+    updateDashboard();
+    updateApprovedQuoteSelect();
+}
+
+function renderQuoteStatusActions(doc) {
+    if (doc.type !== 'quote') {
+        return '';
+    }
+
+    return `
+        <div class="document-status-actions" role="group" aria-label="Quote status actions">
+            <button class="status-action status-action-approved" onclick="updateQuoteStatus(${doc.id}, 'approved')" aria-pressed="${doc.status === 'approved'}">Approve</button>
+            <button class="status-action status-action-rejected" onclick="updateQuoteStatus(${doc.id}, 'rejected')" aria-pressed="${doc.status === 'rejected'}">Reject</button>
+            <button class="status-action status-action-pending" onclick="updateQuoteStatus(${doc.id}, 'pending')" aria-pressed="${doc.status === 'pending'}">Pending</button>
+        </div>
+    `;
 }
 
 function filterDocuments() {
@@ -696,11 +1007,13 @@ function filterDocuments() {
         card.className = 'document-card';
         card.innerHTML = `
             <h3>${doc.number}</h3>
+            ${renderQuoteStatusActions(doc)}
             <div class="document-meta">
                 <p><strong>Type:</strong> ${doc.type.toUpperCase()}</p>
                 <p><strong>Client:</strong> ${doc.clientInfo.name}</p>
                 <p><strong>Date:</strong> ${formatDate(doc.date)}</p>
                 <p><strong>Amount:</strong> ${formatCurrency(doc.total)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status.toUpperCase()}</span></p>
             </div>
             <div class="document-actions">
                 <button class="btn btn-primary" onclick="downloadDocumentPDF(${doc.id}, '${doc.type}')">Download PDF</button>
@@ -790,6 +1103,7 @@ function downloadDocumentPDF(id, type) {
 function updateDashboard() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
     
     document.getElementById('totalQuotes').textContent = quotes.length;
     document.getElementById('totalInvoices').textContent = invoices.length;
@@ -798,9 +1112,21 @@ function updateDashboard() {
         inv.status === 'paid' ? sum + inv.total : sum, 0);
     document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
     
-    const pendingPayments = invoices.reduce((sum, inv) => 
+    const outstanding = calculateTotalOutstandingAmount(invoices, quotes);
+    document.getElementById('totalOutstanding').textContent = formatCurrency(outstanding);
+
+    if (document.getElementById('expenseTotalAmount')) {
+        updateExpenseSummary(expenses);
+    }
+}
+
+// Calculate outstanding amounts from pending invoices and pending quotes
+function calculateTotalOutstandingAmount(invoices, quotes) {
+    const pendingInvoices = invoices.reduce((sum, inv) => 
         inv.status === 'pending' ? sum + inv.total : sum, 0);
-    document.getElementById('pendingPayments').textContent = formatCurrency(pendingPayments);
+    const pendingQuotes = quotes.reduce((sum, quote) => 
+        quote.status === 'pending' ? sum + quote.total : sum, 0);
+    return pendingInvoices + pendingQuotes;
 }
 
 // Utility Functions

@@ -11,8 +11,8 @@
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --dark-bg: rgba(30, 41, 59, 0.95);
-    --card-bg: rgba(51, 65, 85, 0.92);
+    --dark-bg: rgba(30, 41, 59, 0.75);
+    --card-bg: rgba(51, 65, 85, 0.78);
     --text-primary: #f1f5f9;
     --text-secondary: #cbd5e1;
     --border-color: rgba(16, 185, 129, 0.3);
@@ -232,7 +232,7 @@ h3 {
 }
 
 .stat-card {
-    background: rgba(71, 85, 105, 0.7);
+    background: rgba(71, 85, 105, 0.45);
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--border-color);
@@ -245,7 +245,7 @@ h3 {
     transform: translateY(-5px);
     border-color: var(--primary-color);
     box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3), 0 4px 6px rgba(0, 0, 0, 0.3);
-    background: rgba(71, 85, 105, 0.85);
+    background: rgba(71, 85, 105, 0.6);
 }
 
 .stat-card h3 {
@@ -392,7 +392,7 @@ textarea {
 
 /* Calculations */
 .calculations {
-    background: rgba(71, 85, 105, 0.5);
+    background: rgba(71, 85, 105, 0.35);
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--border-color);
@@ -441,7 +441,7 @@ textarea {
 }
 
 .summary-card {
-    background: rgba(71, 85, 105, 0.7);
+    background: rgba(71, 85, 105, 0.45);
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--border-color);
@@ -502,7 +502,7 @@ textarea {
 table {
     width: 100%;
     border-collapse: collapse;
-    background: rgba(71, 85, 105, 0.5);
+    background: rgba(71, 85, 105, 0.35);
 }
 
 thead {
@@ -558,6 +558,21 @@ tbody tr:hover {
     color: var(--text-secondary);
 }
 
+.status-unpaid {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning-color);
+}
+
+.status-approved {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success-color);
+}
+
+.status-rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger-color);
+}
+
 .action-btn {
     padding: 0.5rem 1rem;
     margin: 0 0.25rem;
@@ -603,7 +618,7 @@ tbody tr:hover {
 }
 
 .document-card {
-    background: rgba(71, 85, 105, 0.7);
+    background: rgba(71, 85, 105, 0.45);
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--border-color);
@@ -615,7 +630,7 @@ tbody tr:hover {
     transform: translateY(-5px);
     border-color: var(--primary-color);
     box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3);
-    background: rgba(71, 85, 105, 0.85);
+    background: rgba(71, 85, 105, 0.6);
 }
 
 .document-card h3 {
@@ -633,6 +648,64 @@ tbody tr:hover {
     display: flex;
     gap: 0.5rem;
     margin-top: 1rem;
+}
+
+.document-status-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.status-action {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.status-action:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.status-action-approved {
+    border-color: rgba(16, 185, 129, 0.5);
+    color: var(--success-color);
+}
+
+.status-action-rejected {
+    border-color: rgba(239, 68, 68, 0.6);
+    color: var(--danger-color);
+}
+
+.status-action-pending {
+    border-color: rgba(245, 158, 11, 0.6);
+    color: var(--warning-color);
+}
+
+.status-action:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.status-action[aria-pressed="true"] {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+.expense-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
 }
 
 /* Responsive Design */
@@ -686,6 +759,10 @@ tbody tr:hover {
     .filters,
     .export-controls {
         width: 100%;
+    }
+
+    .document-status-actions {
+        justify-content: flex-start;
     }
 }
 
@@ -783,6 +860,10 @@ tbody tr:hover {
     .container {
         background: white;
         box-shadow: none;
+    }
+
+    .document-status-actions {
+        display: none;
     }
 }
 

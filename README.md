@@ -15,11 +15,17 @@ A professional, fully responsive business finance management system for generati
 - Multiple items with automatic calculations
 - Discount application
 - Payment status options (Pending, Paid, Overdue, Cancelled)
+- Select approved quote to auto-populate invoice fields
 - Save and download as PDF
+
+✅ **Expenses**
+- Draft bills with vendor details, status tracking, and totals
+- Track paid, unpaid, overdue, and cancelled expenses
 
 ✅ **Transactions Page**
 - Real-time transaction overview
 - Total Income, Expenses, Net Profit, and Outstanding calculations
+- Outstanding includes pending invoices and quotes
 - Advanced filtering by type, status, and date range
 - Export transactions to CSV or PDF
 
@@ -28,6 +34,7 @@ A professional, fully responsive business finance management system for generati
 - Search and filter functionality
 - One-click PDF download
 - Document deletion
+- Quote status actions (Approve, Reject, Pending)
 
 ✅ **Dashboard**
 - Live statistics (Total Quotes, Invoices, Revenue, Pending Payments)
