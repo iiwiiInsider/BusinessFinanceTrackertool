@@ -39,31 +39,41 @@ function setupEventListeners() {
     const hamburger = document.querySelector('.hamburger');
     const navMenu = document.querySelector('.nav-menu');
     
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navMenu.classList.toggle('active');
-    });
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+    }
 
-    // Navigation links
+    // Navigation links - with defensive checks
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const page = this.getAttribute('data-page');
-            navigateTo(page);
-            
-            // Close mobile menu
-            hamburger.classList.remove('active');
-            navMenu.classList.remove('active');
+            if (page) {
+                navigateTo(page);
+                
+                // Close mobile menu
+                if (hamburger && navMenu) {
+                    hamburger.classList.remove('active');
+                    navMenu.classList.remove('active');
+                }
+            }
         });
     });
 
     // Real-time calculations for quotes
     const quoteForm = document.getElementById('quoteForm');
-    quoteForm.addEventListener('input', () => calculateQuote());
+    if (quoteForm) {
+        quoteForm.addEventListener('input', () => calculateQuote());
+    }
     
     // Real-time calculations for invoices
     const invoiceForm = document.getElementById('invoiceForm');
-    invoiceForm.addEventListener('input', () => calculateInvoice());
+    if (invoiceForm) {
+        invoiceForm.addEventListener('input', () => calculateInvoice());
+    }
 }
 
 // Navigation
