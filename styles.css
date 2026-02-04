@@ -87,6 +87,9 @@ body {
 
 .logo-icon {
     flex-shrink: 0;
+    display: block;
+    overflow: visible;
+    shape-rendering: geometricPrecision;
 }
 
 .logo-text {
