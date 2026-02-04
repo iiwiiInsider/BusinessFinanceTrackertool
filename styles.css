@@ -162,12 +162,16 @@ body {
 }
 
 .page {
-    display: none;
+    display: none !important;
+    visibility: hidden;
+    opacity: 0;
     animation: fadeIn 0.5s ease;
 }
 
 .page.active {
-    display: block;
+    display: block !important;
+    visibility: visible;
+    opacity: 1;
 }
 
 @keyframes fadeIn {

@@ -8,23 +8,49 @@ const STORAGE_KEYS = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-    setupEventListeners();
-    updateDashboard();
-    loadTransactions();
-    loadDocuments();
-    loadExpenses();
-    loadApprovedQuotes();
+    console.log('=== DOM CONTENT LOADED ===');
+    console.log('Initializing application...');
     
-    // Set default dates
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('quoteDate').value = today;
-    document.getElementById('invoiceDate').value = today;
-    document.getElementById('expenseDate').value = today;
-    
-    // Generate initial document numbers
-    generateQuoteNumber();
-    generateInvoiceNumber();
+    try {
+        initializeApp();
+        console.log('App initialized');
+        
+        setupEventListeners();
+        console.log('Event listeners setup complete');
+        
+        updateDashboard();
+        console.log('Dashboard updated');
+        
+        loadTransactions();
+        console.log('Transactions loaded');
+        
+        loadDocuments();
+        console.log('Documents loaded');
+        
+        loadExpenses();
+        console.log('Expenses loaded');
+        
+        loadApprovedQuotes();
+        console.log('Approved quotes loaded');
+        
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('quoteDate').value = today;
+        document.getElementById('invoiceDate').value = today;
+        document.getElementById('expenseDate').value = today;
+        console.log('Default dates set to:', today);
+        
+        // Generate initial document numbers
+        generateQuoteNumber();
+        generateInvoiceNumber();
+        console.log('Document numbers generated');
+        
+        console.log('=== INITIALIZATION COMPLETE ===');
+    } catch (error) {
+        console.error('=== INITIALIZATION ERROR ===');
+        console.error('Error:', error);
+        console.error('Stack:', error.stack);
+    }
 });
 
 // Initialize App
@@ -78,22 +104,52 @@ function setupEventListeners() {
 
 // Navigation
 function navigateTo(page) {
+    console.log('=== NAVIGATION TRIGGERED ===');
+    console.log('Page requested:', page);
+    console.trace();
+    
     try {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        
-        // Show selected page
-        const targetPage = document.getElementById(page + '-page');
-        if (!targetPage) {
-            console.error(`Page not found: ${page}-page`);
+        // Validate page parameter
+        if (!page || typeof page !== 'string') {
+            console.error('Invalid page parameter:', page);
             return;
         }
+        
+        const pageId = page + '-page';
+        console.log('Looking for page element:', pageId);
+        
+        // Get target page element
+        const targetPage = document.getElementById(pageId);
+        if (!targetPage) {
+            console.error(`CRITICAL: Page element not found: ${pageId}`);
+            console.log('Available page elements:', 
+                Array.from(document.querySelectorAll('[id*="-page"]')).map(el => el.id));
+            return;
+        }
+        
+        console.log('Found target page:', pageId);
+        
+        // Hide all pages
+        const allPages = document.querySelectorAll('.page');
+        console.log('Total pages found:', allPages.length);
+        allPages.forEach((p, index) => {
+            console.log(`  Page ${index}:`, p.id, 'active?', p.classList.contains('active'));
+            p.classList.remove('active');
+        });
+        
+        // Show selected page
+        console.log('Showing page:', pageId);
         targetPage.classList.add('active');
+        console.log('Page is now active:', targetPage.classList.contains('active'));
         
         // Update active nav link
-        document.querySelectorAll('.nav-link').forEach(link => {
+        const navLinks = document.querySelectorAll('.nav-link');
+        console.log('Total nav links found:', navLinks.length);
+        navLinks.forEach(link => {
+            const linkPage = link.getAttribute('data-page');
             link.classList.remove('active');
-            if (link.getAttribute('data-page') === page) {
+            if (linkPage === page) {
+                console.log('Marking active nav link:', linkPage);
                 link.classList.add('active');
             }
         });
@@ -102,6 +158,7 @@ function navigateTo(page) {
         const hamburger = document.querySelector('.hamburger');
         const navMenu = document.querySelector('.nav-menu');
         if (hamburger && navMenu) {
+            console.log('Closing mobile menu');
             hamburger.classList.remove('active');
             navMenu.classList.remove('active');
         }
@@ -110,17 +167,27 @@ function navigateTo(page) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
         // Update page-specific content
+        console.log('Loading page-specific content for:', page);
         if (page === 'transactions') {
+            console.log('Loading transactions...');
             loadTransactions();
         } else if (page === 'documents') {
+            console.log('Loading documents...');
             loadDocuments();
         } else if (page === 'expenses') {
+            console.log('Loading expenses...');
             loadExpenses();
         } else if (page === 'home') {
+            console.log('Updating dashboard...');
             updateDashboard();
         }
+        
+        console.log('=== NAVIGATION COMPLETE ===');
     } catch (error) {
-        console.error('Navigation error:', error);
+        console.error('=== NAVIGATION ERROR ===');
+        console.error('Error object:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
     }
 }
 
@@ -1284,3 +1351,20 @@ function populateFromApprovedQuote() {
     
     alert('Invoice populated from approved quote. Please review and save.');
 }
+
+// ====== GLOBAL FUNCTION EXPORTS ======
+// Ensure all key functions are accessible from HTML onclick attributes
+window.navigateTo = navigateTo;
+window.addQuoteItem = addQuoteItem;
+window.removeItem = removeItem;
+window.saveQuote = saveQuote;
+window.saveInvoice = saveInvoice;
+window.addInvoiceItem = addInvoiceItem;
+window.addExpense = addExpense;
+window.calculateQuote = calculateQuote;
+window.calculateInvoice = calculateInvoice;
+
+console.log('=== GLOBAL FUNCTIONS EXPORTED ===');
+console.log('navigateTo:', typeof window.navigateTo);
+console.log('saveQuote:', typeof window.saveQuote);
+console.log('saveInvoice:', typeof window.saveInvoice);
