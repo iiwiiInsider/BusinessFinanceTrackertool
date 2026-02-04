@@ -2,6 +2,7 @@
 const STORAGE_KEYS = {
     QUOTES: 'business_quotes',
     INVOICES: 'business_invoices',
+    EXPENSES: 'business_expenses',
     BUSINESS_INFO: 'business_info'
 };
 
@@ -12,11 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDashboard();
     loadTransactions();
     loadDocuments();
+    loadExpenses();
+    loadApprovedQuotes();
     
     // Set default dates
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('quoteDate').value = today;
     document.getElementById('invoiceDate').value = today;
+    document.getElementById('expenseDate').value = today;
     
     // Generate initial document numbers
     generateQuoteNumber();
@@ -155,6 +159,7 @@ function saveQuote() {
     
     alert('Quote saved successfully!');
     updateDashboard();
+    loadTransactions(); // Refresh transaction summary
     generateQuoteNumber();
 }
 
@@ -239,12 +244,31 @@ function saveInvoice() {
         total: parseFloat(document.getElementById('invTotal').textContent.replace(/[R $,]/g, ''))
     };
     
+    // Check if this invoice was generated from a quote
+    const form = document.getElementById('invoiceForm');
+    if (form.dataset.quoteId) {
+        invoice.quoteId = parseInt(form.dataset.quoteId);
+        
+        // Update the associated quote status to "accepted"
+        const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+        const quoteIndex = quotes.findIndex(q => q.id === invoice.quoteId);
+        if (quoteIndex !== -1) {
+            quotes[quoteIndex].status = 'accepted';
+            saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+        }
+        
+        // Clear the quote ID from the form
+        delete form.dataset.quoteId;
+        delete form.dataset.generatedFromQuote;
+    }
+    
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
     invoices.push(invoice);
     saveToStorage(STORAGE_KEYS.INVOICES, invoices);
     
     alert('Invoice saved successfully!');
     updateDashboard();
+    loadTransactions(); // Refresh transaction summary
     generateInvoiceNumber();
 }
 
@@ -477,7 +501,8 @@ function downloadInvoicePDF() {
 function loadTransactions() {
     const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
     const invoices = getFromStorage(STORAGE_KEYS.INVOICES) || [];
-    const allTransactions = [...quotes, ...invoices].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const allTransactions = [...quotes, ...invoices, ...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
     
     displayTransactions(allTransactions);
     updateTransactionSummary(allTransactions);
@@ -494,33 +519,98 @@ function displayTransactions(transactions) {
     
     transactions.forEach(trans => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><span class="status-badge">${trans.type.toUpperCase()}</span></td>
-            <td>${trans.number}</td>
-            <td>${trans.clientInfo.name}</td>
-            <td>${formatDate(trans.date)}</td>
-            <td>${trans.dueDate ? formatDate(trans.dueDate) : trans.validUntil ? formatDate(trans.validUntil) : '-'}</td>
-            <td>${formatCurrency(trans.total)}</td>
-            <td><span class="status-badge status-${trans.status}">${trans.status.toUpperCase()}</span></td>
-            <td>
+        let actionButtons = `
+            <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
+            <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
+        `;
+        
+        // Add Generate Invoice button for pending/unapproved quotes
+        if (trans.type === 'quote' && trans.status === 'pending') {
+            actionButtons = `
+                <button class="action-btn" onclick="generateInvoiceFromQuote(${trans.id})">Generate Invoice</button>
                 <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
                 <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
-            </td>
-        `;
+            `;
+        }
+        
+        // Add Pay Now button for pending invoices
+        if (trans.type === 'invoice' && trans.status === 'pending') {
+            actionButtons = `
+                <button class="action-btn" style="background: #10b981;" onclick="updateInvoiceStatus(${trans.id}, 'paid')">Mark Paid</button>
+                <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
+                <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
+            `;
+        }
+        
+        // Add View button for accepted quotes and paid invoices
+        if ((trans.type === 'quote' && trans.status === 'accepted') || (trans.type === 'invoice' && trans.status === 'paid')) {
+            actionButtons = `
+                <button class="action-btn" onclick="viewTransaction(${trans.id})">View</button>
+                <button class="action-btn danger" onclick="deleteTransaction(${trans.id}, '${trans.type}')">Delete</button>
+            `;
+        }
+        
+        // Handle expenses differently
+        if (trans.type === 'expense') {
+            const clientName = trans.vendor || 'N/A';
+            const dueDate = trans.dueDate || '-';
+            const amount = trans.amount || 0;
+            
+            actionButtons = `
+                <button class="action-btn" style="background: #10b981;" onclick="updateExpenseStatus(${trans.id}, 'paid')">Mark Paid</button>
+                <button class="action-btn danger" onclick="deleteExpense(${trans.id})">Delete</button>
+            `;
+            
+            row.innerHTML = `
+                <td><span class="status-badge">${trans.type.toUpperCase()}</span></td>
+                <td>${trans.description || 'Expense'}</td>
+                <td>${clientName}</td>
+                <td>${formatDate(trans.date)}</td>
+                <td>${dueDate}</td>
+                <td>${formatCurrency(amount)}</td>
+                <td><span class="status-badge status-${trans.status}">${trans.status.toUpperCase()}</span></td>
+                <td>${actionButtons}</td>
+            `;
+        } else {
+            // For quotes and invoices
+            row.innerHTML = `
+                <td><span class="status-badge">${trans.type.toUpperCase()}</span></td>
+                <td>${trans.number}</td>
+                <td>${trans.clientInfo.name}</td>
+                <td>${formatDate(trans.date)}</td>
+                <td>${trans.dueDate ? formatDate(trans.dueDate) : trans.validUntil ? formatDate(trans.validUntil) : '-'}</td>
+                <td>${formatCurrency(trans.total)}</td>
+                <td><span class="status-badge status-${trans.status}">${trans.status.toUpperCase()}</span></td>
+                <td>${actionButtons}</td>
+            `;
+        }
         tbody.appendChild(row);
     });
 }
 
 function updateTransactionSummary(transactions) {
     const invoices = transactions.filter(t => t.type === 'invoice');
+    const quotes = transactions.filter(t => t.type === 'quote' && t.status !== 'accepted'); // Exclude accepted quotes
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const allDocuments = [...invoices, ...quotes];
     
+    // Total Income from PAID invoices only
     const totalIncome = invoices.reduce((sum, inv) => 
         inv.status === 'paid' ? sum + inv.total : sum, 0);
     
-    const outstanding = invoices.reduce((sum, inv) => 
+    // Outstanding = pending invoices + pending quotes (not accepted ones)
+    const pendingInvoices = invoices.reduce((sum, inv) => 
         inv.status === 'pending' ? sum + inv.total : sum, 0);
+    const totalQuotes = quotes.reduce((sum, q) => sum + q.total, 0);
+    const outstanding = pendingInvoices + totalQuotes;
     
-    const totalExpenses = 0; // Could be extended with expense tracking
+    // Total potential revenue (all non-deleted, non-accepted transactions)
+    const totalPotentialRevenue = allDocuments.reduce((sum, doc) => sum + doc.total, 0);
+    
+    // Total Expenses - sum of all expenses
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    // Net Profit from paid transactions only minus expenses
     const netProfit = totalIncome - totalExpenses;
     
     document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
@@ -651,6 +741,18 @@ function loadDocuments() {
     allDocuments.forEach(doc => {
         const card = document.createElement('div');
         card.className = 'document-card';
+        
+        let statusButtons = '';
+        if (doc.type === 'quote') {
+            statusButtons = `
+                <div class="document-status-buttons">
+                    <button class="status-btn approve" onclick="updateQuoteStatus(${doc.id}, 'approved')" title="Approve quote">✓ Approve</button>
+                    <button class="status-btn reject" onclick="updateQuoteStatus(${doc.id}, 'rejected')" title="Reject quote">✗ Reject</button>
+                    <button class="status-btn pending" onclick="updateQuoteStatus(${doc.id}, 'pending')" title="Reset to pending">↻ Pending</button>
+                </div>
+            `;
+        }
+        
         card.innerHTML = `
             <h3>${doc.number}</h3>
             <div class="document-meta">
@@ -660,6 +762,7 @@ function loadDocuments() {
                 <p><strong>Amount:</strong> ${formatCurrency(doc.total)}</p>
                 <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status.toUpperCase()}</span></p>
             </div>
+            ${statusButtons}
             <div class="document-actions">
                 <button class="btn btn-primary" onclick="downloadDocumentPDF(${doc.id}, '${doc.type}')">Download PDF</button>
                 <button class="btn btn-secondary danger" onclick="deleteTransaction(${doc.id}, '${doc.type}')">Delete</button>
@@ -694,6 +797,18 @@ function filterDocuments() {
     allDocuments.forEach(doc => {
         const card = document.createElement('div');
         card.className = 'document-card';
+        
+        let statusButtons = '';
+        if (doc.type === 'quote') {
+            statusButtons = `
+                <div class="document-status-buttons">
+                    <button class="status-btn approve" onclick="updateQuoteStatus(${doc.id}, 'approved')" title="Approve quote">✓ Approve</button>
+                    <button class="status-btn reject" onclick="updateQuoteStatus(${doc.id}, 'rejected')" title="Reject quote">✗ Reject</button>
+                    <button class="status-btn pending" onclick="updateQuoteStatus(${doc.id}, 'pending')" title="Reset to pending">↻ Pending</button>
+                </div>
+            `;
+        }
+        
         card.innerHTML = `
             <h3>${doc.number}</h3>
             <div class="document-meta">
@@ -701,9 +816,12 @@ function filterDocuments() {
                 <p><strong>Client:</strong> ${doc.clientInfo.name}</p>
                 <p><strong>Date:</strong> ${formatDate(doc.date)}</p>
                 <p><strong>Amount:</strong> ${formatCurrency(doc.total)}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${doc.status}">${doc.status.toUpperCase()}</span></p>
             </div>
+            ${statusButtons}
             <div class="document-actions">
                 <button class="btn btn-primary" onclick="downloadDocumentPDF(${doc.id}, '${doc.type}')">Download PDF</button>
+                <button class="btn btn-secondary danger" onclick="deleteTransaction(${doc.id}, '${doc.type}')">Delete</button>
             </div>
         `;
         grid.appendChild(card);
@@ -832,4 +950,290 @@ function downloadFile(content, filename, type) {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+}
+
+// Generate Invoice from Quote
+// Generate Invoice from Quote
+function generateInvoiceFromQuote(quoteId) {
+    // Get all quotes from storage
+    const quotes = getFromStorage('business_quotes') || [];
+    const quote = quotes.find(q => q.id === quoteId);
+    
+    if (!quote) {
+        alert('Quote not found');
+        return;
+    }
+    
+    // Populate invoice form with quote data
+    document.getElementById('invClientName').value = quote.clientInfo.name;
+    document.getElementById('invClientEmail').value = quote.clientInfo.email;
+    document.getElementById('invClientPhone').value = quote.clientInfo.phone;
+    document.getElementById('invClientAddress').value = quote.clientInfo.address;
+    
+    // Clear existing items and add quote items
+    const invoiceItemsContainer = document.getElementById('invoiceItems');
+    invoiceItemsContainer.innerHTML = '';
+    
+    // Add each quote item to invoice
+    quote.items.forEach(item => {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'item-row';
+        itemRow.innerHTML = `
+            <input type="text" placeholder="Item/Service Description" value="${item.description}" class="item-description">
+            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-quantity">
+            <input type="number" placeholder="Unit Price" value="${item.price}" class="item-price">
+            <button type="button" onclick="this.parentElement.remove(); calculateInvoice();">Remove</button>
+        `;
+        invoiceItemsContainer.appendChild(itemRow);
+    });
+    
+    // Copy discount and calculate
+    document.getElementById('invDiscount').value = quote.discount || 0;
+    
+    // Set invoice date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('invoiceDate').value = today;
+    
+    // Store quote ID for reference when saving
+    document.getElementById('invoiceForm').dataset.quoteId = quoteId;
+    document.getElementById('invoiceForm').dataset.generatedFromQuote = 'true';
+    
+    // Calculate and display
+    calculateInvoice();
+    
+    // Navigate to invoices page
+    navigateTo('invoices');
+    
+    // Show success message
+    alert('Invoice created from quote. Please review and save.');
+}
+
+// Update Quote Status
+function updateQuoteStatus(quoteId, newStatus) {
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const quoteIndex = quotes.findIndex(q => q.id === quoteId);
+    
+    if (quoteIndex === -1) {
+        alert('Quote not found');
+        return;
+    }
+    
+    const oldStatus = quotes[quoteIndex].status;
+    quotes[quoteIndex].status = newStatus;
+    
+    saveToStorage(STORAGE_KEYS.QUOTES, quotes);
+    loadDocuments();
+    loadApprovedQuotes();
+    loadTransactions();
+    alert(`Quote status updated from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`);
+}
+
+// Update Invoice Status
+function updateInvoiceStatus(invoiceId, newStatus) {
+    const invoices = getFromStorage('business_invoices') || [];
+    const invoiceIndex = invoices.findIndex(inv => inv.id === invoiceId);
+    
+    if (invoiceIndex === -1) {
+        alert('Invoice not found');
+        return;
+    }
+    
+    const oldStatus = invoices[invoiceIndex].status;
+    invoices[invoiceIndex].status = newStatus;
+    
+    // Save updated invoices
+    saveToStorage('business_invoices', invoices);
+    
+    // Refresh transactions display
+    loadTransactions();
+    
+    // Show success message
+    alert(`Invoice status updated from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`);
+}
+
+// Expense Functions
+function saveExpense() {
+    const expense = {
+        id: Date.now(),
+        type: 'expense',
+        date: document.getElementById('expenseDate').value,
+        dueDate: document.getElementById('expenseDueDate').value,
+        vendor: document.getElementById('expenseVendor').value,
+        category: document.getElementById('expenseCategory').value,
+        description: document.getElementById('expenseDescription').value,
+        amount: parseFloat(document.getElementById('expenseAmount').value),
+        status: document.getElementById('expenseStatus').value,
+        notes: document.getElementById('expenseNotes').value
+    };
+    
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    expenses.push(expense);
+    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+    
+    alert('Expense saved successfully!');
+    loadExpenses();
+    updateDashboard();
+    loadTransactions();
+    document.getElementById('expenseForm').reset();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('expenseDate').value = today;
+}
+
+function loadExpenses() {
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    displayExpenses(expenses);
+    updateExpenseSummary(expenses);
+}
+
+function displayExpenses(expenses) {
+    const tbody = document.getElementById('expensesTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    expenses.forEach(expense => {
+        const row = document.createElement('tr');
+        let statusColor = 'status-pending';
+        if (expense.status === 'paid') statusColor = 'status-paid';
+        if (expense.status === 'overdue') statusColor = 'status-overdue';
+        if (expense.status === 'cancelled') statusColor = 'status-cancelled';
+        
+        row.innerHTML = `
+            <td>${expense.vendor}</td>
+            <td>${expense.category}</td>
+            <td>${expense.description}</td>
+            <td>${formatDate(expense.date)}</td>
+            <td>${expense.dueDate ? formatDate(expense.dueDate) : '-'}</td>
+            <td>${formatCurrency(expense.amount)}</td>
+            <td><span class="status-badge ${statusColor}">${expense.status.toUpperCase()}</span></td>
+            <td>
+                <button class="action-btn" onclick="updateExpenseStatus(${expense.id}, 'paid')">Mark Paid</button>
+                <button class="action-btn danger" onclick="deleteExpense(${expense.id})">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateExpenseSummary(expenses) {
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const paidExpenses = expenses.reduce((sum, exp) => exp.status === 'paid' ? sum + exp.amount : sum, 0);
+    const unpaidExpenses = expenses.reduce((sum, exp) => exp.status === 'unpaid' ? sum + exp.amount : sum, 0);
+    const overdueExpenses = expenses.reduce((sum, exp) => exp.status === 'overdue' ? sum + exp.amount : sum, 0);
+    
+    const totalEl = document.getElementById('totalExpenses');
+    const paidEl = document.getElementById('paidExpenses');
+    const unpaidEl = document.getElementById('unpaidExpenses');
+    const overdueEl = document.getElementById('overdueExpenses');
+    
+    if (totalEl) totalEl.textContent = formatCurrency(totalExpenses);
+    if (paidEl) paidEl.textContent = formatCurrency(paidExpenses);
+    if (unpaidEl) unpaidEl.textContent = formatCurrency(unpaidExpenses);
+    if (overdueEl) overdueEl.textContent = formatCurrency(overdueExpenses);
+}
+
+function updateExpenseStatus(expenseId, newStatus) {
+    const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+    const expenseIndex = expenses.findIndex(exp => exp.id === expenseId);
+    
+    if (expenseIndex === -1) {
+        alert('Expense not found');
+        return;
+    }
+    
+    const oldStatus = expenses[expenseIndex].status;
+    expenses[expenseIndex].status = newStatus;
+    
+    saveToStorage(STORAGE_KEYS.EXPENSES, expenses);
+    loadExpenses();
+    updateDashboard();
+    loadTransactions();
+    alert(`Expense status updated from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`);
+}
+
+function deleteExpense(expenseId) {
+    if (confirm('Are you sure you want to delete this expense?')) {
+        const expenses = getFromStorage(STORAGE_KEYS.EXPENSES) || [];
+        const filteredExpenses = expenses.filter(exp => exp.id !== expenseId);
+        saveToStorage(STORAGE_KEYS.EXPENSES, filteredExpenses);
+        loadExpenses();
+        updateDashboard();
+        loadTransactions();
+    }
+}
+
+// Load Approved Quotes for Invoice Dropdown
+function loadApprovedQuotes() {
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const approvedQuotes = quotes.filter(q => q.status === 'approved' || q.status === 'accepted');
+    
+    const selectElement = document.getElementById('approvedQuoteSelect');
+    if (!selectElement) return;
+    
+    // Clear existing options except the first one
+    while (selectElement.options.length > 1) {
+        selectElement.remove(1);
+    }
+    
+    // Add approved quotes
+    approvedQuotes.forEach(quote => {
+        const option = document.createElement('option');
+        option.value = quote.id;
+        option.textContent = `${quote.number} - ${quote.clientInfo.name} (${formatCurrency(quote.total)})`;
+        selectElement.appendChild(option);
+    });
+}
+
+function populateFromApprovedQuote() {
+    const selectElement = document.getElementById('approvedQuoteSelect');
+    const quoteId = parseInt(selectElement.value);
+    
+    if (!quoteId) return;
+    
+    // Find the quote
+    const quotes = getFromStorage(STORAGE_KEYS.QUOTES) || [];
+    const quote = quotes.find(q => q.id === quoteId);
+    
+    if (!quote) {
+        alert('Quote not found');
+        return;
+    }
+    
+    // Populate invoice form with quote data
+    document.getElementById('invClientName').value = quote.clientInfo.name;
+    document.getElementById('invClientEmail').value = quote.clientInfo.email;
+    document.getElementById('invClientPhone').value = quote.clientInfo.phone;
+    document.getElementById('invClientAddress').value = quote.clientInfo.address;
+    
+    // Clear existing items and add quote items
+    const invoiceItemsContainer = document.getElementById('invoiceItems');
+    invoiceItemsContainer.innerHTML = '';
+    
+    // Add each quote item to invoice
+    quote.items.forEach(item => {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'item-row';
+        itemRow.innerHTML = `
+            <input type="text" placeholder="Item/Service Description" value="${item.description}" class="item-description">
+            <input type="number" placeholder="Quantity" value="${item.quantity}" class="item-quantity">
+            <input type="number" placeholder="Unit Price" value="${item.price}" class="item-price">
+            <button type="button" onclick="this.parentElement.remove(); calculateInvoice();">Remove</button>
+        `;
+        invoiceItemsContainer.appendChild(itemRow);
+    });
+    
+    // Copy discount and calculate
+    document.getElementById('invDiscount').value = quote.discount || 0;
+    
+    // Set invoice date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('invoiceDate').value = today;
+    
+    // Store quote ID for reference when saving
+    document.getElementById('invoiceForm').dataset.quoteId = quoteId;
+    
+    // Calculate and display
+    calculateInvoice();
+    
+    alert('Invoice populated from approved quote. Please review and save.');
 }

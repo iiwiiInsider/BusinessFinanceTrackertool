@@ -11,8 +11,8 @@
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --dark-bg: rgba(30, 41, 59, 0.95);
-    --card-bg: rgba(51, 65, 85, 0.92);
+    --dark-bg: rgba(30, 41, 59, 0.85);
+    --card-bg: rgba(51, 65, 85, 0.65);
     --text-primary: #f1f5f9;
     --text-secondary: #cbd5e1;
     --border-color: rgba(16, 185, 129, 0.3);
@@ -808,4 +808,108 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--secondary-color);
+}
+/* Document Status Buttons */
+.document-status-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.status-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 80px;
+}
+
+.status-btn.approve {
+    background: rgba(16, 185, 129, 0.7);
+    color: white;
+    border: 1px solid #10b981;
+}
+
+.status-btn.approve:hover {
+    background: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.status-btn.reject {
+    background: rgba(239, 68, 68, 0.7);
+    color: white;
+    border: 1px solid #ef4444;
+}
+
+.status-btn.reject:hover {
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.status-btn.pending {
+    background: rgba(245, 158, 11, 0.7);
+    color: white;
+    border: 1px solid #f59e0b;
+}
+
+.status-btn.pending:hover {
+    background: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+/* Responsive design for status buttons */
+@media (max-width: 768px) {
+    .document-status-buttons {
+        flex-direction: column;
+    }
+    
+    .status-btn {
+        min-width: 100%;
+    }
+}
+
+/* Status badge for expenses */
+.status-cancelled {
+    background: rgba(107, 114, 128, 0.7);
+    color: #f1f5f9;
+}
+
+.status-overdue {
+    background: rgba(239, 68, 68, 0.7);
+    color: #f1f5f9;
+}
+
+.status-paid {
+    background: rgba(16, 185, 129, 0.7);
+    color: #f1f5f9;
+}
+
+.status-unpaid {
+    background: rgba(245, 158, 11, 0.7);
+    color: #f1f5f9;
+}
+
+/* Expense form styling */
+#expenseForm .form-section {
+    margin-bottom: 2rem;
+}
+
+#expenseForm textarea {
+    background: rgba(51, 65, 85, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+#expenseForm textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
