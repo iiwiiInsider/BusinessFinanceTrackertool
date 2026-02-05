@@ -35,9 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set default dates
         const today = getTodayString();
-        document.getElementById('quoteDate').value = today;
-        document.getElementById('invoiceDate').value = today;
-        document.getElementById('expenseDate').value = today;
+        const quoteDate = document.getElementById('quoteDate');
+        if (quoteDate) quoteDate.value = today;
+        const invoiceDate = document.getElementById('invoiceDate');
+        if (invoiceDate) invoiceDate.value = today;
+        const expenseDate = document.getElementById('expenseDate');
+        if (expenseDate) expenseDate.value = today;
         console.log('Default dates set to:', today);
         
         // Generate initial document numbers
@@ -119,6 +122,28 @@ function setupEventListeners() {
     
     // Initialize item row event listeners
     setupInitialItemListeners();
+
+    // Delegated listeners for dynamic quote items
+    const quoteItemsContainer = document.getElementById('quoteItems');
+    if (quoteItemsContainer) {
+        quoteItemsContainer.addEventListener('input', (event) => {
+            const target = event.target;
+            if (target && (target.classList.contains('item-qty') || target.classList.contains('item-price'))) {
+                calculateQuote();
+            }
+        });
+    }
+
+    // Delegated listeners for dynamic invoice items
+    const invoiceItemsContainer = document.getElementById('invoiceItems');
+    if (invoiceItemsContainer) {
+        invoiceItemsContainer.addEventListener('input', (event) => {
+            const target = event.target;
+            if (target && (target.classList.contains('item-qty') || target.classList.contains('item-price'))) {
+                calculateInvoice();
+            }
+        });
+    }
 }
 
 function setupInitialItemListeners() {
@@ -520,10 +545,7 @@ function addInvoiceItem() {
         alert('Error adding item. Please check browser console.');
     }
 }
-    calculateInvoice();
-}
-    calculateInvoice();
-}
+
 
 function calculateInvoice() {
     try {
@@ -1606,10 +1628,10 @@ function updateExpenseSummary(expenses) {
     const unpaidExpenses = expenses.reduce((sum, exp) => exp.status === 'unpaid' ? sum + exp.amount : sum, 0);
     const overdueExpenses = expenses.reduce((sum, exp) => exp.status === 'overdue' ? sum + exp.amount : sum, 0);
     
-    const totalEl = document.getElementById('totalExpenses');
-    const paidEl = document.getElementById('paidExpenses');
-    const unpaidEl = document.getElementById('unpaidExpenses');
-    const overdueEl = document.getElementById('overdueExpenses');
+    const totalEl = document.getElementById('expensesTotal');
+    const paidEl = document.getElementById('expensesPaid');
+    const unpaidEl = document.getElementById('expensesUnpaid');
+    const overdueEl = document.getElementById('expensesOverdue');
     
     if (totalEl) totalEl.textContent = formatCurrency(totalExpenses);
     if (paidEl) paidEl.textContent = formatCurrency(paidExpenses);
@@ -1745,7 +1767,6 @@ window.removeItem = removeItem;
 window.saveQuote = saveQuote;
 window.saveInvoice = saveInvoice;
 window.addInvoiceItem = addInvoiceItem;
-window.addExpense = addExpense;
 window.calculateQuote = calculateQuote;
 window.calculateInvoice = calculateInvoice;
 window.downloadQuotePDF = downloadQuotePDF;
@@ -1754,6 +1775,18 @@ window.resetForm = resetForm;
 window.generateInvoiceFromQuote = generateInvoiceFromQuote;
 window.saveExpense = saveExpense;
 window.populateFromApprovedQuote = populateFromApprovedQuote;
+window.applyFilters = applyFilters;
+window.clearFilters = clearFilters;
+window.exportTransactionsCSV = exportTransactionsCSV;
+window.exportTransactionsPDF = exportTransactionsPDF;
+window.filterDocuments = filterDocuments;
+window.downloadDocumentPDF = downloadDocumentPDF;
+window.updateQuoteStatus = updateQuoteStatus;
+window.updateInvoiceStatus = updateInvoiceStatus;
+window.updateExpenseStatus = updateExpenseStatus;
+window.deleteExpense = deleteExpense;
+window.deleteTransaction = deleteTransaction;
+window.viewTransaction = viewTransaction;
 
 console.log('=== GLOBAL FUNCTIONS EXPORTED ===');
 console.log('navigateTo:', typeof window.navigateTo);
